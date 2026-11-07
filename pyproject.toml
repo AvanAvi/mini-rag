@@ -26,3 +26,9 @@ build-backend = "uv_build"
 dev = [
     "pytest",
 ]
+
+[tool.pytest.ini_options]
+addopts = "-m 'not slow' --basetemp=.cache/pytest-tmp"
+markers = [
+    "slow: uses the real fastembed model (downloads it on first run)",
+]
