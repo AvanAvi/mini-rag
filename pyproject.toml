@@ -1,0 +1,28 @@
+[project]
+name = "mini-rag"
+version = "0.1.0"
+description = "A small hybrid-retrieval RAG pipeline combining dense embeddings and BM25."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastembed",
+    "numpy",
+    "rank-bm25",
+]
+
+[project.scripts]
+mini-rag = "mini_rag.cli:Cli.main"
+
+[project.optional-dependencies]
+llm = [
+    "anthropic",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
