@@ -1,0 +1,48 @@
+In functional safety, a safety instrumented system (SIS) is an engineered set of hardware and software controls which provides a protection layer that shuts down a chemical, nuclear, electrical, or mechanical system, or part of it, if a hazardous condition is detected. It relates to the prevention of major accidents, and not occupational safety issues.
+
+
+== Requirement specification ==
+An SIS contains one or more safety instrumented functions (SIF). The SIS is credited with a certain measure of reliability depending on its safety integrity level (SIL). The required SIL is determined from a quantitative process hazard analysis (PHA), such as a Layers of Protection Analysis (LOPA). The SIL requirements are verified during the design, construction, installation, and operation of the SIS. The required functionality may be verified by design reviews, factory acceptance testing, site acceptance testing, and regular functional testing. The PHA is in turn based on a hazard identification exercise. In the process industries (oil and gas production, refineries, chemical plants, etc.), this exercise is usually a hazard and operability study (HAZOP). The HAZOP usually identifies not only the process hazards of a plant (such as release of hazardous materials due to the process operating outside the safe limits of the plant) but also the SIFs protecting the plant from such excursions.
+
+
+== Design ==
+An SIS is intended to perform specific control functions to prevent unsafe process operations when unacceptable or dangerous conditions occur. Because of its criticality, safety instrumented systems must be independent from all other control systems that control the same equipment, in order to ensure SIS functionality is not compromised. A SIS is composed of the same types of control elements (including sensors,  logic solvers, actuators and other control equipment) as a Basic Process Control System (BPCS). However, all of the control elements in an SIS are dedicated solely to the proper functioning of the SIS.  
+The essential characteristic of an SIS is that it must include instruments, which detect the process variables (flow, temperature, pressure etc. in the case of a processing facility) are exceeding preset limits (sensors), a logic solver which processes this information and makes appropriate decisions based on the nature of the signal(s), and final elements which receive the output of the logic solver and take necessary action on the process to achieve a safe state. All these components must function properly for the SIS to perform its SIF. The logic solver may use electrical, electronic or programmable electronic equipment, such as relays, trip amplifiers, or programmable logic controllers. Support systems, such as power, instrument air, and communications, are generally required for SIS operation. The support systems should be designed to provide the required integrity and reliability. One example of SIF  is a temperature sensor that provides a signal to a controller, which compares the sensed process temperature to the desired temperature setpoint and sends a signal to an emergency on-off valve actuator which stops the flow of heating fluid to the process if the process temperature is exceeded by an unsafe margin. 
+SIFs are implemented as part of an overall risk reduction strategy which is intended to minimize the likelihood of a previously identified accident that could range from minor equipment damage up to the uncontrolled catastrophic release of energy or materials.
+The safe state must be achieved in a sufficiently short amount of time (known as process safety time) to prevent the accident.
+
+
+== International standards ==
+International standard IEC 61511 was published in 2003 to provide guidance to end-users on the application of Safety Instrumented Systems in the process industries. This standard is based on IEC 61508, a generic standard for functional safety that includes aspects on design, construction, and operation of electrical/electronic/programmable electronic systems. Other industry sectors may also have standards that are based on IEC 61508, such as IEC 62061 (machinery systems), IEC 62425 (for railway signaling systems), IEC 61513 (for nuclear systems), and ISO 26262 (for road vehicles).
+
+
+== Related concepts ==
+Other terms often used in conjunction with and/or to describe safety instrumented systems include:
+
+Critical control system
+Protective instrumented system
+Equipment protection system
+Safety shutdown system
+Process shutdown system
+Emergency shutdown system
+Safety-critical system
+Interlock (of which there is a specific domain in railway signaling)
+
+
+== See also ==
+Distributed control system (DCS)
+FMEDA
+Industrial control systems (ICS)
+Plant process and emergency shutdown systems
+SCADA
+Spurious trip level
+
+
+== References ==
+
+
+== External links ==
+Center for Chemical Process Safety book, Guidelines for Safe and Reliable Instrumented Protective Systems
+Example Safety Requirement Specification (SRS) document
+Safety Equipment Reliability Handbook, 4th Edition  for use in Safety Instrumented System (SIS) conceptual design verification in the process industry
+Example Functional Safety Management Plan (FSMP) document
