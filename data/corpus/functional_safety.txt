@@ -1,0 +1,90 @@
+Functional safety is the part of the overall safety of a system or piece of equipment that depends on automatic protection operating correctly in response to its inputs or failure in a predictable manner (fail-safe). The automatic protection system should be designed to properly handle likely systematic errors, hardware failures and operational/environmental stress.
+
+
+== Objective ==
+The objective of functional safety is freedom from unacceptable risk of physical injury or of damage to the health of people either directly or indirectly (through damage to property or to the environment) by the proper implementation of one or more automatic protection functions (often called safety functions). A safety system (often called a safety-related system) consists of one or more safety functions.
+Functional safety is intrinsically end-to-end in scope in that it has to treat the function of a component or subsystem as part of the function of the entire automatic protection function of any system. Thus, although functional safety standards focus on electrical, electronic, and programmable systems (E/E/PS), the end-to-end scope means that in practice, functional safety methods must extend to the non-E/E/PS parts of the system that the E/E/PS actuators, valves, motor controls or monitors.
+
+
+== Achieving functional safety ==
+Functional safety is achieved when every specified safety function is carried out and the level of performance required of each safety function is met. This is normally achieved by a process that includes the following steps as a minimum:
+
+Identifying what the required safety functions are. This means the hazards and safety functions have to be known. A process of function reviews, formal HAZIDs, HAZOPs and accident reviews are applied to identify these.
+Assessment of the risk-reduction required by the safety function, which will involve a safety integrity level (SIL) or performance level or other quantification assessment. A SIL (or PL, AgPL, ASIL) applies to an end-to-end safety function of the safety-related system, not just to a component or a part of the system.
+Ensuring the safety function performs to the design intent, including under conditions of incorrect operator input and failure modes. This will involve having the design and lifecycle managed by qualified and competent engineers carrying out processes to a recognized functional safety standard. In Europe, that standard is IEC EN 61508, or one of the industry specific standards derived from IEC EN 61508, or for simple systems some other standard like ISO 13849.
+Verification that the system meets the assigned SIL, ASIL, PL or agPL by determining the probability of dangerous failure, checking minimum levels of redundancy, and reviewing systematic capability (SC). These three metrics have been called "the three barriers". Failure modes of a device are typically determined by failure mode and effects analysis of the system (FMEA). Failure probabilities for each failure mode are typically determined using failure mode, effects, and diagnostic analysis FMEDA.
+Conduct functional safety audits to examine and assess the evidence that the appropriate safety lifecycle management techniques were applied consistently and thoroughly in the relevant lifecycle stages of product.
+Neither safety nor functional safety can be determined without considering the system as a whole and the environment with which it interacts. Functional safety is inherently end-to-end in scope. Modern systems often have software intensively commanding and controlling safety-critical functions. Therefore, software functionality and correct software behavior must be part of the Functional safety engineering effort to ensure acceptable safety risk at the system level.
+
+
+== Certifying functional safety ==
+Any claim of functional safety for a component, subsystem or system should be independently certified to one of the recognized functional safety standards. A certified product can then be claimed to be functionally safe to a particular safety integrity level or a performance level in a specific range of applications: the certificate and the assessment report is provided to the customers describing the scope and limits of performance.
+
+
+=== Certification bodies ===
+Functional safety is a technically challenging field. Certifications should be done by independent organizations with experience and strong technical depth (electronics, programmable electronics, mechanical, and probabilistic analysis). Functional safety certification is performed by accredited certification bodies (CB). Accreditation is awarded to a CB organization by an accreditation body (AB). In most countries there is one AB. In the United States, the American National Standards Institute (ANSI) is the AB for functional safety accreditation. In the United Kingdom, the United Kingdom Accreditation Service (UKAS) provides functional safety accreditation. ABs are members of the International Accreditation Forum (IAF) for work in management systems, products, services, and personnel accreditation or the International Laboratory Accreditation Cooperation (ILAC) for laboratory testing accreditation. A multilateral recognition arrangement (MLA) between ABs will ensure global recognition of accredited CBs. 
+IEC 61508 functional safety certification programs have been established by several global Certification Bodies. Each has defined their own scheme based upon IEC 61508 and other functional safety standards. The scheme lists the referenced standards and specifies procedures which describes their test methods, surveillance audit policy, public documentation policies, and other specific aspects of their program. Functional safety certification programs for IEC 61508 standards are being offered globally by several recognized CBs including Intertek, SGS, TÜV Rheinland, TÜV SÜD and UL.
+An important element of functional safety certification is on-going surveillance by the certification agency. Most CB organizations have included surveillance audits in their scheme. The follow-up surveillance ensures that the product, sub-system, or system is still being manufactured in accordance with what was originally certified for functional safety. Follow-up surveillance may occur at various frequencies depending on the certification body, but will typically look at the product's field failure history, hardware design changes, software changes, as well as the manufacturer's ongoing compliance of functional safety management systems.
+
+
+=== Military aerospace ===
+For military aerospace and defense systems MIL-STD-882E addresses functional hazard analyses (FHA) and determining which functions implemented in hardware and software are safety significant. The Functional safety focus is on ensuring safety critical functions and functional threads in the system, subsystem and software are analyzed and verified for correct behavior per safety requirements, including functional failure conditions and faults and appropriate mitigation in the design. These system safety principles underpinning functional safety were developed in the military, nuclear and aerospace industries, and then taken up by rail transport, process and control industries developing sector specific standards. Functional safety standards are applied across all industry sectors dealing with safety critical requirements and are especially applicable anytime software commands, controls or monitors a safety-critical function. Thousands of products and processes meet the standards based on IEC 61508: from bathroom showers, automotive safety products, sensors, actuators, diving equipment, Process Controllers and their integration to ships, aircraft and major plants.
+
+
+=== Aviation ===
+The US FAA have similar functional safety certification processes, in the form of ARP4761, US RTCA DO-178C for software and DO-254 for complex electronic hardware, which is applied throughout the aerospace industry. Functional safety and design assurance on civil/commercial transport aircraft is documented in SAE ARP4754A as functional design assurance levels (FDALS). The system FDALs drive the depth of engineering safety analysis. The level of rigor (LOR) or safety tasks performed to ensure acceptable risk are dependent upon the identification of specific functional failure condition and hazard severity relating to the safety-critical functions (SCF). In many cases functional behavior in embedded software is thoroughly analyzed and tested to ensure the system functions as intended under credible fault and failure conditions. Functional safety is becoming the normal focused approach on complex software intensive systems and highly integrated systems with safety consequences. The traditional software safety tasks and model based functional safety tasks are performed to provide objective safety evidence that the system functionality and safety features perform as intended in normal and off nominal failures. The entry point of functional safety begins early in the process by performing Functional Hazard Analyses (FHA)to identify hazards and risks and to influence the safety design requirements and functional allocation and decomposition to mitigate hazards. The behavior of the software and SCFs at the system level is a vital part of any functional safety effort. Analyses and implementation results are documented in functional hazard assessments (FHA) or system safety assessments or safety cases. Model-based functional safety processes are often used and required on highly integrated and complex software intensive systems to understand all of the many interactions and predicted behavior and to help in the safety verification and certification process.
+
+
+==== Safety Review Boards ====
+At Boeing, a Safety Review Board (SRB) is responsible for deciding only if an issue is or is not a safety issue. An SRB brings together multiple company subject-matter experts (SMEs) in many disciplines. The most knowledgeable SME presents the issue, assisted and guided by the Aviation Safety organization. The safety decision is taken as a vote. Any vote for "safety" results in a board decision of "safety".
+
+
+=== Space ===
+In the US, NASA developed an infrastructure for safety critical systems adopted widely by industry, both in North America and elsewhere, with a standard, supported by guidelines. The NASA standard and guidelines are built on ISO 12207, which is a software practice standard rather than a safety critical standard, hence the extensive nature of the documentation NASA has been obliged to add, compared to using a purpose designed standard such as IEC EN 61508. A certification process for systems developed in accord with the NASA guidelines exists.
+
+
+=== Automotive ===
+The automotive industry has developed ISO 26262 "Road Vehicles Functional Safety Standard" based on IEC 61508. The certification of those systems ensures the compliance with the relevant regulations and helps to protect the public. The ATEX Directive has also adopted a functional safety standard, it is BS EN 50495:2010 "Safety Devices Required for the Safe Functioning of Equipment with Respect to Explosion Risks" covers safety related devices such as purge controllers and Ex e motor circuit breakers. It is applied by notified bodies under the ATEX Directive. The standard ISO 26262 particularly addresses the automotive development cycle. It is a multi-part standard defining requirements and providing guidelines for achieving functional safety in E/E systems installed in series production passenger cars. ISO 26262 is considered a best-practice framework for achieving automotive functional safety. The compliance process usually takes time as employees need to be trained in order to develop the expected competencies.
+
+
+== Contemporary functional safety standards ==
+The primary functional safety standards in current use are listed below:
+
+IEC EN 61508 Parts 1 to 7 is a core functional safety standard, applied widely to all types of safety critical E/E/PS and to systems with a safety function incorporating E/E/PS.
+UK Defence Standard 00-56 Issue 2
+US RTCA DO-178C, North American Avionics Software
+US RTCA DO-254, North American Avionics Hardware
+EUROCAE ED-12B, European Airborne Flight Safety Systems
+IEC 61513, Nuclear power plants – Instrumentation and control for systems important to safety – General requirements for systems, based on EN 61508
+IEC 61511-1, Functional safety – Safety instrumented systems for the process industry sector – Part 1: Framework, definitions, system, hardware and software requirements, based on EN 61508
+IEC 61511-2, Functional safety – Safety instrumented systems for the process industry sector – Part 2: Guidelines for the application of IEC 61511-1, based on EN 61508
+IEC 61511-3, Functional safety – Safety instrumented systems for the process industry sector – Part 3: Guidance for the determination of the required safety integrity levels, based on EN 61508
+IEC 62061, Safety of machinery – Functional safety of safety-related electrical, electronic and programmable electronic control systems, based on EN 61508
+ISO 13849-1, -2, Safety of machinery – Safety-related parts of control systems. Non-technology dependent standard for control system safety of machinery.
+EN 50126, Railway industry specific – RAMS review of operations, system and maintenance conditions for project equipment
+EN 50128, Railway industry specific - Software (communications, signaling & processing systems) safety review
+EN 50129, Railway industry specific - System safety in electronic systems
+EN 50495, Safety devices required for the safe functioning of equipment with respect to explosion risks
+NASA Safety Critical Guidelines
+ISO 19014, Earth moving machinery – Functional safety
+ISO 25119, Tractors and machinery for agriculture and forestry – Safety-related parts of control systems
+ISO 26262, Road vehicles functional safety
+The standard ISO 26262 particularly addresses the automotive development cycle. It is a multi-part standard defining requirements and providing guidelines for achieving functional safety in E/E systems installed in series production passenger cars. The standard ISO 26262 is considered a best practice framework for achieving automotive functional safety.
+
+
+== See also ==
+FMEA
+FMEDA
+IEC 61508
+Plant process and emergency shutdown systems
+Safety integrity level
+Safety engineering
+Spurious trip level
+
+
+== References ==
+
+
+== External links ==
+IEC Functional safety zone
+61508.org The 61508 Association

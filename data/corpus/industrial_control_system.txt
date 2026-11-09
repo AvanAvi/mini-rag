@@ -1,0 +1,70 @@
+An industrial control system (ICS) is an electronic control system and associated instrumentation used for industrial process control. Control systems can range in size from a few modular panel-mounted controllers to large interconnected and interactive distributed control systems (DCSs) with many thousands of field connections. Control systems receive data from remote sensors measuring process variables (PVs), compare the collected data with desired setpoints (SPs), and derive command functions that are used to control a process through the final control elements (FCEs), such as control valves.
+Larger systems are usually implemented by supervisory control and data acquisition (SCADA) systems, or DCSs, and programmable logic controllers (PLCs), though SCADA and PLC systems are scalable down to small systems with few control loops. Such systems are extensively used in industries such as chemical processing, pulp and paper manufacture, power generation, oil and gas processing, and telecommunications.
+
+
+== History ==
+ 
+
+Process control of large industrial plants has evolved through many stages. Initially, control was from panels local to the process plant. However, this required personnel to attend to these dispersed panels, and there was no overall view of the process. The next logical development was the transmission of all plant measurements to a permanently staffed central control room. Often, the controllers were behind the control room panels, and all automatic and manual control outputs were individually transmitted back to the plant in the form of pneumatic or electrical signals. Effectively, this was the centralisation of all the localised panels, with the advantages of reduced manpower requirements and a consolidated overview of the process.
+However, whilst providing a central control focus, this arrangement was inflexible as each control loop had its own controller hardware, so system changes required reconfiguration of signals by re-piping or re-wiring. It also required continual operator movement within a large control room in order to monitor the whole process. With the coming of electronic processors, high-speed electronic signalling networks and electronic graphic displays, it became possible to replace these discrete controllers with computer-based algorithms, hosted on a network of input/output racks with their own control processors. These could be distributed around the plant and would communicate with the graphic displays in the control room. The concept of distributed control was realised.
+The introduction of distributed control allowed flexible interconnection and re-configuration of plant controls such as cascaded loops and interlocks, and interfacing with other production computer systems. It enabled sophisticated alarm handling, introduced automatic event logging, removed the need for physical records such as chart recorders, allowed the control racks to be networked and thereby located locally to the plant to reduce cabling runs, and provided high-level overviews of plant status and production levels. For large control systems, the general commercial name distributed control system (DCS) was coined to refer to proprietary modular systems from many manufacturers that integrated high-speed networking and a full suite of displays and control racks.
+While the DCS was tailored to meet the needs of large continuous industrial processes, in industries where combinatorial and sequential logic was the primary requirement, the PLC evolved out of a need to replace racks of relays and timers used for event-driven control. The old controls were difficult to reconfigure and debug, and PLC control enabled networking of signals to a central control area with electronic displays. PLCs were first developed for the automotive industry on vehicle production lines, where sequential logic was becoming very complex. It was soon adopted in a large number of other event-driven applications as varied as printing presses and water treatment plants.
+SCADA's history is rooted in distribution applications, such as power, natural gas, and water pipelines, where there is a need to gather remote data through potentially unreliable or intermittent low-bandwidth and high-latency links. SCADA systems use open-loop control with sites that are widely separated geographically. A SCADA system uses remote terminal units (RTUs) to send supervisory data back to a control centre. Most RTU systems always had some capacity to handle local control while the master station is not available. However, over the years, RTU systems have grown more and more capable of handling local control.
+The boundaries between DCS and SCADA/PLC systems are blurring as time goes on. The technical limits that drove the designs of these various systems are no longer as much of an issue. Many PLC platforms can now perform quite well as a small DCS, using remote I/O and are sufficiently reliable that some SCADA systems actually manage closed-loop control over long distances. With the increasing speed of today's processors, many DCS products have a full line of PLC-like subsystems that weren't offered when they were initially developed.
+In 1993, with the release of IEC-1131, later to become IEC-61131-3, the industry moved towards increased code standardization with reusable, hardware-independent control software. For the first time, object-oriented programming (OOP) became possible within industrial control systems. This led to the development of both programmable automation controllers (PAC) and industrial PCs (IPC). These are platforms programmed in the five standardized IEC languages: ladder logic, structured text, function block, instruction list and sequential function chart. They can also be programmed in modern high-level languages such as C or C++. Additionally, they accept models developed in analytical tools such as MATLAB and Simulink. Unlike traditional PLCs, which use proprietary operating systems, IPCs utilize Windows IoT. IPCs have the advantage of powerful multi-core processors with much lower hardware costs than traditional PLCs and fit well into multiple form factors such as DIN rail mount, combined with a touch-screen as a panel PC, or as an embedded PC. New hardware platforms and technology have contributed significantly to the evolution of DCS and SCADA systems, further blurring the boundaries and changing definitions.
+
+
+== Discrete controllers ==
+
+The simplest control systems are based around small discrete controllers with a single control loop each. These are usually panel mounted, which allows direct viewing of the front panel and provides a means of manual intervention by the operator, either to manually control the process or to change control setpoints. Originally, these were pneumatic controllers, a few of which are still in use, but nearly all are now electronic.
+Quite complex systems can be created with networks of these controllers communicating using industry-standard protocols. Networking allows the use of local or remote SCADA operator interfaces and enables the cascading and interlocking of controllers. However, as the number of control loops increases for a system design, there is a point where the use of a programmable logic controller (PLC) or distributed control system (DCS) is more manageable or cost-effective.
+
+
+== Distributed control systems ==
+
+A distributed control system (DCS) is a digital process control system (PCS) for a process or plant, wherein controller functions and field connection modules are distributed throughout the system. As the number of control loops grows, DCS becomes more cost effective than discrete controllers. Additionally, a DCS provides supervisory viewing and management over large industrial processes. In a DCS, a hierarchy of controllers is connected by communication networks, allowing centralized control rooms and local on-plant monitoring and control.
+A DCS enables easy configuration of plant controls such as cascaded loops and interlocks, and easy interfacing with other computer systems such as production control. It also enables more sophisticated alarm handling, introduces automatic event logging, removes the need for physical records such as chart recorders and allows the control equipment to be networked and thereby located locally to the equipment being controlled to reduce cabling.
+A DCS typically uses custom-designed processors as controllers and uses either proprietary interconnections or standard protocols for communication. Input and output modules form the peripheral components of the system.
+The processors receive information from input modules, process the information and decide control actions to be performed by the output modules. The input modules receive information from sensing instruments in the process (or field) and the output modules transmit instructions to the final control elements, such as control valves.
+The field inputs and outputs can either be continuously changing analog signals, e.g., current loop or 2-state signals that switch either on or off, such as relay contacts or a semiconductor switch.
+Distributed control systems can normally also support Foundation Fieldbus, PROFIBUS, HART, Modbus and other digital communication buses that carry not only input and output signals but also advanced messages such as error diagnostics and status signals.
+
+
+== SCADA systems ==
+
+Supervisory control and data acquisition (SCADA) is a control system architecture that uses computers, networked data communications and graphical user interfaces for high-level process supervisory management. The operator interfaces, which enable monitoring and the issuing of process commands, such as controller setpoint changes, are handled through the SCADA supervisory computer system. However, the real-time control logic or controller calculations are performed by networked modules which connect to other peripheral devices such as programmable logic controllers and discrete PID controllers that interface to the process plant or machinery.
+The SCADA concept was developed as a universal means of remote access to a variety of local control modules, which could be from different manufacturers, allowing access through standard automation protocols. In practice, large SCADA systems have grown to become very similar to distributed control systems in function, but using multiple means of interfacing with the plant. They can control large-scale processes that can include multiple sites and work over large distances. This is a commonly used architecture industrial control systems, however there are concerns about SCADA systems being vulnerable to cyberwarfare or cyberterrorism attacks.
+The SCADA software operates on a supervisory level, as control actions are performed automatically by RTUs or PLCs. SCADA control functions are usually restricted to basic overriding or supervisory-level intervention. A feedback control loop is directly controlled by the RTU or PLC, but the SCADA software monitors the overall performance of the loop. For example, a PLC may control the flow of cooling water through part of an industrial process to a set point level, but the SCADA system software will allow operators to change the set points for the flow. The SCADA also enables alarm conditions, such as loss of flow or high temperature, to be displayed and recorded.
+
+
+== Programmable logic controllers ==
+
+PLCs can range from small modular devices with tens of inputs and outputs (I/O) in a housing integral with the processor, to large rack-mounted modular devices with a count of thousands of I/O, and which are often networked to other PLC and SCADA systems. They can be designed for multiple arrangements of digital and analog inputs and outputs, extended temperature ranges, immunity to electrical noise, and resistance to vibration and impact. Programs to control machine operation are typically stored in battery-backed or non-volatile memory.
+
+
+== Security ==
+SCADA and PLCs are vulnerable to cyber attack. The U.S. Government Joint Capability Technology Demonstration (JCTD) known as MOSAICS (More Situational Awareness for Industrial Control Systems) is the initial demonstration of cybersecurity defensive capability for critical infrastructure control systems. MOSAICS addresses the Department of Defense (DOD) operational need for cyber defense capabilities to defend critical infrastructure control systems from cyber attack, such as power, water and wastewater, and safety controls, affect the physical environment. The MOSAICS JCTD prototype will be shared with commercial industry through Industry Days for further research and development, an approach intended to lead to an innovative, game-changing capabilities for cybersecurity for critical infrastructure control systems.
+
+
+== See also ==
+Automation
+Plant process and emergency shutdown systems
+MTConnect
+OPC Foundation
+Safety instrumented system (SIS)
+Control system security
+Operational Technology
+
+
+== References ==
+
+
+== Further reading ==
+Guide to Industrial Control Systems (ICS) Security, SP800-82 Rev2, National Institute of Standards and Technology, May 2015.
+Walker, Mark John (2012-09-08). The Programmable Logic Controller: its prehistory, emergence and application (PDF) (PhD thesis). Department of Communication and Systems Faculty of Mathematics, Computing and Technology: The Open University. Archived (PDF) from the original on 2018-06-20. Retrieved 2018-06-20.
+
+
+== External links ==
+"New Age of Industrial Controllers". Archived from the original on 2016-03-03.
+Proview, an open-source process control system
+"10 Reasons to choose PC Based Control". Manufacturing Automation. February 2015.

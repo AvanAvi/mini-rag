@@ -1,0 +1,185 @@
+A stellarator is a fusion power device that confines plasma using external magnets. It is one of many types of magnetic confinement fusion devices, and among the first to be invented. The name "stellarator" refers to stars, because fusion mostly occurs in stars such as the Sun. It is one of the earliest human-designed fusion power devices.
+The stellarator was invented by American scientist Lyman Spitzer in 1951. Much of its early development was carried out by Spitzer's team at what later became the Princeton Plasma Physics Laboratory (PPPL). Spitzer's Model A began operation in 1953 and demonstrated plasma confinement. Larger models followed, but demonstrated poor performance, losing plasma at rates far worse than theoretical predictions. By the early 1960s, attention turned to fundamental theory. By the mid-1960s, Spitzer was convinced that the stellarator was matching the Bohm diffusion rate, which suggested it would never be a practical fusion device.
+The USSR's T-3 tokamak demonstrated a leap in performance in 1968. PPPL converted the Model C stellarator to the Symmetric Tokamak (ST) to confirm or deny its results. ST surpassed them. Large-scale stellarator work in the US was replaced by tokamaks. Research continued in Germany and Japan, addressing many of the original problems, and began to approach the performance of early tokamaks.
+The tokamak ultimately proved to have problems similar to the stellarators (for different reasons). Since the 1990s, stellarator interest rekindled. New techniques increased field quality and power, improving performance.
+
+
+== History ==
+
+
+=== Previous work ===
+In 1934, Mark Oliphant, Paul Harteck and Ernest Rutherford were the first to create fusion, using a particle accelerator to shoot deuterium nuclei into a metal foil containing deuterium, lithium or other elements. These experiments allowed them to measure the nuclear cross section of various reactions of fusion between nuclei. They determined that the tritium–deuterium reaction occurred at a lower energy than any other fuel, peaking at about 100,000 electronvolts (100 keV).
+100 keV corresponds to a temperature of about one billion kelvin. As described by the Maxwell–Boltzmann statistics, a bulk gas at a much lower temperature will still contain some particles at these energies. Because fusion reactions release so much energy, even a small number of such reactions can release enough energy to maintain the gas at the required temperature. In 1944, Enrico Fermi demonstrated that this would occur at a bulk temperature of about 50 million Celsius, within the range of existing experimental systems. The key problem was confining the plasma; no material container could withstand those temperatures. However, plasmas are electrically conductive, subjecting them to electric and magnetic fields.
+In a magnetic field, the plasma's electrons and nuclei circle the magnetic lines of force. One confinement approach is to place a tube of fuel inside the open core of a solenoid. A solenoid creates magnetic lines running down its center, and fuel would be held away from the walls by orbiting these lines of force. But such an arrangement does not confine the plasma along the length of the tube. The obvious solution is to bend the tube around into a torus (donut) shape, so that any one line forms a circle, and the particles can circle forever.
+However, for purely geometric reasons, the magnets ringing the torus are closer together on the inside curve, inside the "donut hole". Fermi noted that this would cause the electrons to drift away from the nuclei, eventually causing large voltages to develop. The resulting electric field would cause the plasma ring inside the torus to expand until it hit the reactor walls.
+
+
+=== Stellarator ===
+After World War II, researchers began considering ways to confine a plasma. George Paget Thomson of Imperial College London proposed a system now known as z-pinch, which runs a current through the plasma. Due to the Lorentz force, this current creates a magnetic field that pulls the plasma in on itself, keeping it away from the walls. This eliminates the need for external magnets, avoiding Fermi's problem. Various teams in the UK built a number of small experimental devices using this technique by the late 1940s.
+Ronald Richter was a German scientist who emigrated to Argentina. His thermotron used electrical arcs and mechanical compression (sound waves) for heating and confinement. He convinced Juan Perón to fund development of an experimental reactor. Known as the Huemul Project, this was completed in 1951. Richter convinced himself fusion had been achieved despite disagreements with other researchers. 
+While preparing for a ski trip to Aspen, Spitzer received a telephone call from his father, who mentioned an article on Huemul in The New York Times. Spitzer concluded it could not possibly work; the system could not provide enough energy. He then began considering alternatives. The stellarator concept came while riding a ski lift.
+His approach was to modify the torus' geometric layout to address Fermi's concerns. By twisting one end of the torus compared to the other, forming a figure-8 layout instead of a circle, the magnetic lines moved closer and further from the torus' center. A particle orbiting these lines constantly moves in and out across the minor axis of the torus, drifting upward through half of one orbit and reversing in the other. The cancellation is not perfect, but it appeared this would sufficiently reduce net drift that the fuel would remain trapped long enough to reach the required temperatures.
+
+
+=== Matterhorn ===
+A secret research lab at Princeton University carried on theoretical work on H-bombs after 1951. Spitzer was invited to join this program, given his previous research in interstellar plasmas.
+Spitzer then lost interest in bomb design, and turned his attention to fusion as a power source. Spitzer produced a series of reports outlining the conceptual basis for the stellarator, as well as potential problems. The series is notable for its depth; it included a detailed analysis of the mathematics of the plasma and stability along with heating the plasma and dealing with impurities.
+Spitzer began to lobby the United States Atomic Energy Commission (AEC) for funding. His plan involved three stages, each relying on the success of the prior stage over the course of a decade:
+
+Model A was tasked to demonstrate that a plasma could be created and that its confinement time was better than a torus.
+Model B would heat the plasma to fusion temperatures.
+Model C would attempt to create fusion reactions at a large scale.
+Around the same time, Jim Tuck had been introduced to the pinch concept while working at Clarendon Laboratory at Oxford University. He eventually ended up at Los Alamos, where he acquainted the other researchers with the concept. When he heard Spitzer was promoting the stellarator, he travelled to Washington to propose building a pinch device. He considered Spitzer's plans "incredibly ambitious". Nevertheless, Spitzer was funded with $50,000, while Tuck received nothing.
+Spitzer, an avid mountain climber, proposed the name "Project Matterhorn" because he felt that "the work at hand seemed difficult, like the ascent of a mountain". Two sections were initially set up, S Section working on the stellarator under Spitzer, and B Section working on bomb design under Wheeler. Spitzer set up the top-secret S Section in a former rabbit hutch.
+The other labs then began agitating for their own funding. Tuck managed to arrange some funding for his Perhapsatron through some discretionary budgets at LANL, but other teams at LANL, Berkeley and Oak Ridge (ORNL) also sought funds. The AEC eventually organized Project Sherwood, a new department for these projects.
+
+
+=== Early devices ===
+Spitzer invited James Van Allen to join the group and set up an experimental program. Allen suggested starting with a "tabletop" device. This led to the Model A design, which began construction in 1952. It was made from 5 cm pyrex tubes about 350 cm in total length, and magnets capable of about 1,000 gauss. The machine began operation in early 1953 and clearly demonstrated improved confinement over the simple torus.
+This led to Model B, whose magnets were not well mounted and tended to move when powered to 50,000 gauss. A second design failed for the same reason, but this machine demonstrated several-hundred-kilovolt X-rays that suggested good confinement. 
+Next came the B-1, which used ohmic heating to reach around 100,000 degrees. This machine demonstrated that impurities in the plasma emitted large x-rays that cooled the plasma. In 1956, B-1 was rebuilt with an ultra-high vacuum system to reduce impurities, but found that even at smaller quantities they were still problematic. Another effect was that during the heating process, the particles would remain confined for only a few tenths of a millisecond, while once the field was turned off, any remaining particles were confined for as long as 10 milliseconds. This appeared to be due to "cooperative effects" within the plasma.
+B-2 was similar to B-1, but used pulsed power to allow it to reach higher magnetic energy and included a second heating system known as magnetic pumping. This machine was modified to add an ultra-high vacuum system. Unfortunately, B-2 demonstrated little heating from the magnetic pumping, given its longer required confinement times. It was displayed at the Atoms for Peace show. However, heating system modifications increased the coupling, demonstrating temperatures within the heating section as high as 1000 eV, around 12 million K.
+B-64 was completed in 1955, essentially a larger B-1, but powered by pulses that produced up to 15,000 gauss. This machine included a divertor, which removed impurities from the plasma, greatly reducing the x-ray cooling effect. B-64 included straight sections in the curved ends which gave it a squared-off appearance. This appearance led to its nickname, "figure-8, squared", "8 squared", or "64". In 1956 the machine was re-assembled without the twist in the tubes, allowing the particles to travel without rotation.
+B-65, completed in 1957, was built using the "racetrack" layout, following the observation that adding helical coils to the curved portions of the device produced a field that introduced the rotation purely through the resulting magnetic fields. This had the added advantage that the magnetic field included shear, which was known to improve stability. 
+B-3, also completed in 1957, was an enlarged B-2 with ultra-high vacuum and pulsed confinement up to 50,000 gauss and projected confinement times as long as 0.01 second. 
+The last B-series was the B-66, completed in 1958, essentially a combination of the racetrack layout with the larger size and energy of the B-3.
+Unfortunately, these larger machines demonstrated "pump out". This effect caused plasma drift rates higher than classical theory suggested and much higher than the Bohm rates. B-3's drift rate was a full three times that of the worst-case Bohm predictions, and failed to maintain confinement for more than a few tens of microseconds.
+
+
+=== Model C ===
+ 
+As early as 1954, design of Model C was taking shape. It emerged as a large racetrack with multiple heating sources and a divertor, essentially a larger B-66. Construction began in 1958 and was completed in 1961. It could be adjusted to allow a plasma minor axis between 5 and 7.5 cm and was 1200 cm in length. The toroidal field coils normally operated at 35,000 gauss.
+By the time Model C began operations, it was understood that it would not produce large-scale fusion. Ion transport across the magnetic field lines was much higher than classical theory suggested. Greatly increased magnetic fields did little to address this, and confinement times did not improve. Attention turned to theoretical understanding of the plasma. In 1961, Melvin B. Gottlieb took over Matterhorn from Spitzer, and the project was renamed the Princeton Plasma Physics Laboratory (PPPL).
+Continual experimentation slowly improved the machine, and confinement times eventually increased to match that of Bohm predictions. Over time, new versions of the heating systems increased the temperatures. Notable was the 1964 addition of a small particle accelerator to accelerate fuel ions to high enough energy to cross the magnetic fields, depositing energy within the reactor when they collided with ions already inside. This neutral beam injection method is nearly universal on magnetic confinement fusion machines.
+Model C spent most of its history involved in studies of ion transport. Through continual tuning of the magnetic system and the addition of the new heating methods, in 1969, Model C eventually reached electron temperatures of 400 eV, 4.6 million K.
+
+
+=== Other approaches ===
+Stellarator designs proliferated, adopting a simplified magnetic layout. Model C used separate confinement and helical coils. Other researchers, notably in Germany, noted that the same overall magnetic field configuration could be achieved with a much simpler arrangement. This led to the torsatron or heliotron layout.
+In these designs, the primary field is produced by a single helical magnet, similar to one of the helical windings of the "classical" stellarator. Only a single, much larger magnet is needed. To produce the net field, a second set of coils running poloidally around the outside of the helical magnet produces a vertical field that mixes with the helical one. The result is a much simpler layout, as the poloidal magnets are generally much smaller and leave ample room between them to reach the interior.
+The total field could be produced through independent magnets shaped like the local field. This results in complex magnets arranged like the toroidal coils of the original layout. The advantage of this design is that the magnets are entirely independent; if one is damaged it can be individually replaced without affecting the rest of the system. Additionally, the overall field can be rearranged layout by replacing the elements and became common.
+
+
+=== Tokamak surge ===
+In 1968, scientists in the Soviet Union released the results of their tokamak machine experiments, notably T-3. The results were so unexpected that scepticism was widespread. To address this, the Soviets invited experts from the United Kingdom to test the machines. Their tests used a laser system developed for the ZETA reactor to verify the Soviet claims of electron temperatures of 1,000 eV. What followed was a "veritable stampede" of tokamak construction worldwide.
+At first US labs ignored the news; Spitzer dismissed it as experimental error. However, as more results surfaced, especially the UK reports, Princeton defended the stellarator while other groups were clamoring for funds to build tokamaks. In July 1969 Gottlieb had a change of heart, offering to convert the Model C to a tokamak layout. In December it was shut down and reopened in May as the Symmetric Tokamak (ST).
+The ST immediately matched the performance of the Soviet machines, besting Model C's results by over tenfold. Thereafter, PPPL was the primary developer of the tokamak approach in the US, introducing a series of machines to test various designs. The Princeton Large Torus of 1975 quickly achieved several performance metrics required for a commercial machine, and it was widely believed the critical threshold of breakeven would be reached in the early 1980s based on larger machines and more powerful heating systems.
+Tokamaks are a type of pinch machine, differing from earlier designs primarily in the amount of current in the plasma: above a certain threshold known as the safety factor, or q, the plasma is much more stable. ZETA ran at a q around 1⁄3, while experiments on tokamaks demonstrated it needs to be at least 1. Machines following this rule showed dramatically improved performance. However, by the mid-1980s fusion power remained out of reach; as the amount of current in the new machines began to increase, new instabilities in the plasma appeared. These could be addressed, but only by greatly increasing the power of the magnetic fields, requiring superconducting magnets and huge confinement volumes. The cost of such a machine was such that the involved parties banded together to begin the ITER project.
+
+
+=== Stellarator returns ===
+
+As the tokamak approach faltered, interest in stellarators reemerged. New stellarators built in this time include Wendelstein 7-AS, the first optimized stellarator with modular coils. In 1983, Allen Boozer discovered toroidal magnetic field quasi-symmetries, which promised to reduce particle and heat loss from suitably optimized stellarators. This approach became the basis for future stellarator designs, especially after Jürgen Nührenberg published the first ever numerical approximation to quasi-helical symmetry in a stellarator with buildable coils.
+These theory developments coincided with the development of advanced computer aided planning tools that allowed the construction of complex magnets that were previously known but considered too difficult to design and build.
+New materials and construction methods increased the quality and power of the magnetic fields, improving performance. New devices built to test these concepts include Wendelstein 7-X (W7-X) in Germany, the Helically Symmetric Experiment (HSX) in the US, and the Large Helical Device in Japan. W7X and LHD use superconducting magnetic coils.
+Minimizing internal current eliminates some of the tokomak's instabilities, allowed the stellarator to be more stable given similar operating conditions. Since it lacks the confinement provided by the current found in a tokamak, the stellarator requires more powerful magnets to reach any given confinement. The stellarator is an inherently steady-state machine, which has several engineering advantages.
+In 2023 PPPL built an experimental device using mainly commercial components at a cost of $640,000. Its core is a glass vacuum chamber surrounded by a 3D-printed nylon shell that anchors 9,920 permanent magnets. Sixteen electromagnets wrap the shell.
+
+
+=== 2000- ===
+
+
+==== Transport losses ====
+The goal of magnetic confinement devices is to minimise energy transport across a magnetic field. Toroidal devices are relatively successful because the magnetic properties seen by the particles are averaged as they travel around the torus. The strength of the field seen by a particle, however, generally varies, so that some particles will be trapped by the mirror effect. These particles will not be able to average the magnetic properties so effectively, which increases energy transport. In most stellarators, these changes in field strength are greater than in tokamaks, which is a major reason that transport loss tends to be higher.
+University of Wisconsin electrical engineering Professor David Anderson and research assistant John Canik proved in 2007 that the Helically Symmetric eXperiment (HSX) can overcome this major barrier in plasma research. The HSX is the first stellarator to use a quasi-symmetric magnetic field. The team designed and built the HSX, reporting that quasi-symmetry reduced energy transport.
+W7-X was designed to be close to omnigeneity (a property of the magnetic field such that the mean radial drift is zero), which is a necessary but not sufficient condition for quasi-symmetry. W7-X experiments revealed turbulence-induced anomalous diffusion.  Its optimized magnetic field showed effective control of bootstrap current and reduced neoclassical energy transport, enabling high-temperature plasma conditions and record fusion values along with longer impurity confinement times during turbulence-suppressed phases. These findings highlight the success of magnetic field optimization in stellarators.
+
+
+==== Divertor ====
+At W7-X, the island divertor stabilized detached plasma scenarios and reduced heat fluxes on divertor targets. This design created multiple adjacent counter-streaming flow regions that reduce flow speed parallel to magnetic field lines, leading to substantial heat flux mitigation. Radiative power exhaust by impurity seeding was demonstrated in island divertor configurations, resulting in stable plasma operation and reduced divertor heat loads. The edge magnetic structure in quasi--omnigenous and helically symmetric stellarators such as W7-X and HSX, impacts particle fueling and exhaust. The magnetic island chain can be used to control plasma fueling from recycling source and active gas injection.
+
+
+==== Private sector ====
+Private sector stellarator projects began emerging in 2018. Participants include Renaissance Fusion, Proxima Fusion, Type One, and Thea Energy.
+Proxima Fusion is a Munich-based spin-off from the Max Planck Institute for Plasma Physics, which steered the W7-X experiment. In February 2025, it announced plans to build a test magnet from high-temperature superconductors in 2027 and a demo unit in 2031.
+Type One Energy was founded in 2019 by Randall Volberg and scientists from the University of Wisconsin-Madison and Oak Ridge National Laboratory. In January 2026, the company secured an additional $87 million with efforts to raise a further $250 million for its Series B at a $900 million pre-money valuation. Its Infinity One system is intended to validate its design, with construction beginning in 2026. Infinity Two is intended to produce net power. That machine is designed to cover 14 meters and generate 800 MWt, resulting in 350 MWe.
+PPPL spinout Thea Energy plans to shape its fields with angled circular coils finetuned with flat magnets.
+
+
+== Concepts ==
+
+
+=== Requirements for fusion ===
+Heating a gas increases the energy of the particles within it, so by heating a gas to hundreds of millions of degrees, the majority of the particles reach the energy required to fuse. 
+According to the Maxwell–Boltzmann distribution, some will reach the required energies at much lower average temperatures. Because the energy released by the fusion reaction is much greater than what it takes to start it, even a small number of reactions can heat surrounding fuel until it fuses. In 1944, Fermi calculated the D–T reaction would be self-sustaining at about 50000000 K.
+Materials heated beyond a few tens of thousand degrees ionize, producing plasma. According to the ideal gas law, like any hot gas, plasma has an internal pressure and thus wants to expand. For a fusion reactor, the challenge is to keep the plasma contained. In a magnetic field, the electrons and nuclei orbit the magnetic field lines, confining them to the area defined by the field.
+
+
+=== Magnetic confinement ===
+A simple confinement system can be made by placing a tube inside the open core of a solenoid. The tube can be evacuated and then filled with gas and heated until it becomes a plasma. The plasma tries to expand outwards to the walls of the tube, and move along it, towards the ends. The solenoid creates magnetic field lines running down the center of the tube, and the plasma particles orbit these lines, preventing their motion towards the sides. However, this arrangement does not confine the plasma along the length of the tube, and the plasma can flow out the ends.
+One solution is to bend the tube into a torus (a ring or donut) shape. Motion towards the sides remains constrained as before, and while the particles remain free to move along the lines, in this case, they circulate around the tube. But, as Fermi pointed out, when the solenoid is bent into a ring, the electrical windings would be closer together on the inside than the outside. This leads to an uneven field across the tube, and the fuel drifts out of the center. Since the electrons and ions drift in opposite directions, this leads to a charge separation and electrostatic forces that eventually overwhelm the magnetic force. Some additional force needs to counteract this drift, providing long-term confinement.
+
+
+=== Stellarator ===
+Spitzer's key concept is that the drift could be canceled through the physical arrangement of the vacuum tube. In a torus, particles on the inside edge of the tube, where the field was stronger, would drift up, while those on the outside would drift down (or vice versa). However, if the particle were made to alternate between the inside and outside of the tube, the drifts would alternate between up and down and would cancel out. The cancellation is not perfect, leaving some net drift, but calculations suggested drift would be low enough to confine plasma long enough to heat it.
+Instead of a normal torus, Spitzer's device would essentially be cut in half to produce two half-tori. They would then be joined with two straight sections between the open ends. The key was that they were connected to alternate ends so that the right half of one was connected to the left of the other. The resulting design resembled a figure-8 when viewed from above. Because the straight tubes could not pass through each other, the design did not lie flat, the tori at either end had to be tilted. This meant the drift cancellation was further reduced.
+To understand how the system works to counteract drift, consider the path of a single particle in the system starting in one of the straight sections. If that particle is perfectly centered in the tube, it will travel down the center into one of the half-tori, exit into the center of the next tube, and so on. This particle will loop through the entire torus without leaving the center. Now consider another particle traveling parallel to the first, but initially located near the inside wall of the tube. In this case, it enters the outside edge of the half-torus and begins to drift down. It exits that section and enters the second straight section, still on the outside edge of that tube. However, because the tubes are crossed, when it reaches the second half-torus it enters it on the inside edge and drifts back up.
+Drift has other causes as well. Although the ions and electrons in the plasma both circle the magnetic lines, they move in opposite directions, at high rotational speeds. This leads to the possibility of collisions between particles circling different lines of force as they travel through the reactor, which for purely geometric reasons, causes the fuel to slowly drift outward. This process eventually causes the fuel to either collide with the structure or cause a large charge separation between the ions and electrons. Spitzer introduced the concept of a divertor, a magnet placed around the tube that pulled off the very outer layer of the plasma. This would remove the ions before they drifted too far and hit the walls. It would also remove any heavier elements.
+Using classical calculations, the rate of diffusion through collisions was low enough that it would be much lower than the drift due to uneven fields in a normal toroid. But studies of magnetically confined plasmas in 1949 demonstrated much higher losses and became known as Bohm diffusion. After considering this issue, Spitzer concluded that the anomalous rate seen by Bohm was due to instability in the plasma, which he believed could be addressed.
+
+
+=== Alternative designs ===
+One major concern is that the magnetic fields properly confine a particle only of a given mass traveling at a given speed. Particles traveling faster or slower will not circulate in the desired fashion. Particles with low speeds (low temperature) are not confined and can drift. Hot particles may hit the outside walls of the curved sections. To address these concerns, Spitzer introduced the concept of a divertor connected to one of the straight sections. This was essentially a mass spectrometer that would remove particles that were moving too fast or too slow.
+The requirement that the two straight sections not intersect means that the rotational transform is typically around 135 degrees. This led to alternate designs that attempted to get the angle closer to 180. An early attempt was B-2, which placed the curved sections flat in relation to the ground, but at different heights. The straight sections had additional curves inserted, two sections of about 45 degrees, so they now formed extended S-shapes. This allowed them to route around each other while being remaining symmetrical in terms of angles.
+B-64 and B-65 eliminated the cross-over and flattened the device into an oval "racetrack". Particle rotation was introduced by placing a new set of magnetic coils on the half-torus on either end, the corkscrew windings. The field from these coils mixes with the confinement fields to produce a mixed field that rotates the lines of force through 180 degrees. This made the mechanical design of the reactor much simpler, but in practice, perfectly symmetrical mixed fields proved difficult to produce.
+Stellarator designs generally use more complex magnets to produce a single shaped field, resembling a twisted ribbon. Design differences mostly concern magnet arrangements, which govern the resulting field. 
+
+
+=== Heating ===
+Unlike the z-pinch or tokamak, the stellarator has no induced electrical current within the plasma – at a macroscopic level, the plasma is neutral and unmoving, although the individual particles within it circulate. In pinch machines, the current is one of the primary heating methods. Stellarators have no such heating source.
+Early stellarator designs used current-based initial heating. This consisted of a single set of windings from a transformer, with the plasma itself forming a secondary set. When energized with a pulse of current, the particles in the region heat and begin to move. This brings additional gas into the region to be heated in turn. This concept was referred to as ohmic heating because it relied on the resistance of the gas to create heat. As the temperature of the gas increases, plasma conductivity improves. This makes ohmic heating less effective, limiting temperatures to about 1 million kelvins.
+To reach higher temperatures, Spitzer proposed a second heat source, the magnetic pumping system. This consisted of a radio-frequency source fed through a coil spread along the vacuum chamber. The frequency is similar to the natural frequency of the particles around the magnetic lines of force, the cyclotron frequency. Particles in the area gain energy, which causes them to increase their orbital radius. Since other particles are orbiting their own lines nearby, at a macroscopic level, this change in energy appears as an increase in pressure. According to the ideal gas law, this results in an increase in temperature. As in ohmic heating, this process also becomes less efficient as the temperature increases. Ion-cyclotron resonance heating sets the frequency close to that of the ion circulation. 
+
+
+=== Inherent problems ===
+In the early 1970s, Tihiro Ohkawa at General Atomics showed that toroids with smaller aspect ratios and non-circular plasmas improve performance. The aspect ratio compares the device's overall radius to the vacuum tube's cross-sectional radius. An ideal reactor minimizes this ratio by reducing the central hole. Modern spherical tokamaks, such as the UK's MAST with a ratio of 1.3, achieve near-spherical shapes by elongating the tube vertically around a single metal post. Stellarators require complex magnets to shape the magnetic field, initially using stacked sets. Modern systems combine these, but still need significant space, resulting in larger inner radii and higher aspect ratios than tokamaks. For example, W7-X has a ratio of 10. New designs aim to lower this ratio, but as of 2023, they remained untested and far higher than tokamak levels. In 2025, simulations suggested a novel low-aspect-ratio design could reduce the ratio to 6, reducing size by 30%. 
+Production stellarators must shield magnets from 14.1 MeV neutrons using a 1–1.5 m thick breeding blanket containing lithium. This increases magnet distance from the plasma, requiring stronger fields than in designs where magnets line the vacuum chamber. To compensate, stellarators scale to large sizes, with separations growing from 10 cm to 1 m. Designs like ARIES-CS, with an 8 m radius and 4.6 aspect ratio, remain oversized. The complex magnets demand precise positioning, with tolerances as tight as 1.5 mm. 
+The National Compact Stellarator Experiment (NCSX), a low-aspect-ratio design with a 4.4 ratio, was canceled in 2008 due to unachievable tolerances, as component sagging exceeded limits. In 2025, 3D-printed magnet supports reduced alignment errors by 20% in prototype tests. 
+Stellarators leak approximately 5% of alpha particles, stressing plasma-facing components.
+
+
+== Plasma heating ==
+Plasma can be heated in various ways:
+
+Current heating – The plasma heats when a current is passed through it (due to electrical resistance). Only used for initial heating, as the resistance is inversely proportional to the plasma temperature.
+High-frequency electromagnetic waves – The plasma absorbs energy when electromagnetic waves are applied to it (analogous to a microwave oven).
+Heating by neutral particles – A neutral particle beam injector makes ions and accelerates them with an electric field. To avoid being affected by the Stellarator's magnetic field, the ions must be neutralised. Neutralised ions are then injected into the plasma. Their high kinetic energy is transferred to the plasma particles by collisions, heating them.
+
+
+== Configurations ==
+
+Several different configurations of stellarator exist, including:
+
+Figure-8, or spatial stellarator – The Princeton Model A stellarator is based on the 1953's figure-eight design. It achieved a rotational transform using torsion of the magnetic axis. This is a helix configuration.
+Racetrack, or classical stellarator – Most famously the Princeton Model C, this stellarator type generates a magnetic field by connecting the plasma poloidally and toroidally through helical coils. Stellarators with this helitron configuration were only operational until the late 1960s due to issues with particle confinement.
+
+Torsatron – A torsatron is a type of stellarator that uses external, continuously wound helical coils to generate the magnetic field. The magnetic field is similar to the racetrack design, but uses only one set of coils. This simplifies the structure, which can potentially improve the stability of the plasma. An example of a torsatron is the Compact Toroidal Hybrid (CTH).
+Heliotron – The heliotron is a stellarator designed in Japan that uses a helical coil to confine the plasma and a pair of poloidal field coils to generate a vertical field. The helical and toroidal coils work together to generate the magnetic field. Its simplified coil structure makes manufacturing easier, while its modular coil system offers more flexibility in manipulating the magnetic field. The Large Helical Device in Japan is an example of this configuration.
+Modular stellarator –  A stellarator with a set of modular (separated) coils and a twisted toroidal coil. e.g. Helically Symmetric Experiment (HSX) (and Helias (below))
+
+Heliac – A helical axis stellarator, in which the magnetic axis (and plasma) follows a helical path to form a toroidal helix rather than a simple ring shape. The twisted plasma induces twist in the magnetic field lines to effect drift cancellation, and typically can provide more twist than the Torsatron or Heliotron, especially near the centre of the plasma (magnetic axis). The original Heliac (SHEILA) consists only of circular coils, and the flexible heliac (H-1NF, TJ-II, TU-Heliac) adds a small helical coil to allow the twist to be varied by a factor of up to 2.
+Helias – A helical advanced stellarator, using an optimized modular coil set designed to simultaneously achieve high plasma, low Pfirsch–Schluter currents and good confinement of energetic particles; i.e., alpha particles for reactor scenarios. The Helias has been proposed as the most promising concept for a power plant, with a modular engineering design and optimised plasma, MHD and magnetic field properties. The W7-X is based on a five field-period Helias configuration.
+
+
+== See also ==
+
+Ball-pen probe
+Langmuir probe
+
+
+== Notes ==
+
+
+== References ==
+
+
+=== Citations ===
+
+
+=== Bibliography ===
+
+
+== External links ==
+
+Stellarator News from ORNL
+Stellarators Around the World – inc UST-2
