@@ -9,10 +9,16 @@ from mini_rag.answerer import Answerer
 from mini_rag.bm25_index import Bm25Index
 from mini_rag.chunker import Chunker
 from mini_rag.dense_index import DenseIndex
+from mini_rag.document import Document
+from mini_rag.eval_index_store import EvalIndexStore
+from mini_rag.evaluator import Evaluator
 from mini_rag.hybrid_hit import HybridHit
 from mini_rag.hybrid_retriever import HybridRetriever
 from mini_rag.llm_client import LlmClient
 from mini_rag.loader import Loader
+from mini_rag.question_loader import QuestionLoader
+from mini_rag.question_validator import QuestionValidator
+from mini_rag.report_writer import ReportWriter
 
 
 class Cli:
@@ -20,6 +26,8 @@ class Cli:
 
   I_OK = 0
   I_USAGE_ERROR = 2
+  I_MAX_PROBLEMS = 10  # question-set problems printed before giving up
+  I_BRIEF_LENGTH = 160  # characters of hit text shown with --brief
 
   def __init__(self, obj_embedder: object | None = None, obj_llm_client: object | None = None) -> None:
     """Store optional test doubles: an embedder for DenseIndex and a client replacing LlmClient."""
@@ -46,9 +54,12 @@ class Cli:
     if obj_args.s_command == "query":
       return self.query(
         obj_args.s_question, obj_args.s_index_dir, obj_args.i_top_k,
-        obj_args.f_threshold, obj_args.b_generate,
+        obj_args.f_threshold, obj_args.b_generate, obj_args.b_brief,
       )
-    return self.eval()
+    return self.eval(
+      obj_args.s_questions, obj_args.s_corpus, obj_args.l_sizes, obj_args.i_overlap, obj_args.i_gate_top_k,
+      obj_args.s_cache_dir, obj_args.s_out, obj_args.b_rebuild, obj_args.b_build_only,
+    )
 
   def build_parser(self) -> argparse.ArgumentParser:
     """Return the argument parser with the ingest, query and eval subcommands."""
@@ -67,9 +78,26 @@ class Cli:
     obj_query.add_argument("--top-k", dest="i_top_k", type=int, default=5)
     obj_query.add_argument("--threshold", dest="f_threshold", type=float, default=0.5)
     obj_query.add_argument("--generate", dest="b_generate", action="store_true")
+    obj_query.add_argument("--brief", dest="b_brief", action="store_true")
 
-    obj_commands.add_parser("eval", help="not implemented yet")
+    obj_eval = obj_commands.add_parser("eval", help="compare the retrieval methods and sweep the answer gate")
+    obj_eval.add_argument("--questions", dest="s_questions", default="eval/questions.json")
+    obj_eval.add_argument("--corpus", dest="s_corpus", default="data/corpus")
+    obj_eval.add_argument("--sizes", dest="l_sizes", type=self.parse_sizes, default=[500, 1000])
+    obj_eval.add_argument("--overlap", dest="i_overlap", type=int, default=100)
+    obj_eval.add_argument("--gate-top-k", dest="i_gate_top_k", type=int, default=5)
+    obj_eval.add_argument("--cache-dir", dest="s_cache_dir", default=".cache/eval")
+    obj_eval.add_argument("--out", dest="s_out", default="eval/results.md")
+    obj_eval.add_argument("--rebuild", dest="b_rebuild", action="store_true")
+    obj_eval.add_argument("--build-only", dest="b_build_only", action="store_true")
     return obj_parser
+
+  def parse_sizes(self, s_sizes: str) -> list[int]:
+    """Turn a comma-separated --sizes value such as "500,1000" into a list of ints."""
+    try:
+      return [int(s_size) for s_size in s_sizes.split(",")]
+    except ValueError:
+      raise argparse.ArgumentTypeError(f"sizes must be comma-separated whole numbers, got {s_sizes!r}")
 
   def ingest(self, s_corpus_dir: str, s_index_dir: str, i_size: int, i_overlap: int) -> int:
     """Load, chunk, embed and save the corpus; print a summary and return an exit code."""
@@ -93,13 +121,19 @@ class Cli:
     print(f"elapsed: {f_elapsed:.2f} s")
     return self.I_OK
 
-  def query(self, s_question: str, s_index_dir: str, i_top_k: int, f_threshold: float, b_generate: bool) -> int:
+  def query(
+    self, s_question: str, s_index_dir: str, i_top_k: int, f_threshold: float, b_generate: bool,
+    b_brief: bool = False,
+  ) -> int:
     """Retrieve chunks for a question and print them plus the answer; return an exit code."""
     obj_dense = DenseIndex(obj_embedder=self.obj_embedder)
     try:
       obj_dense.load(s_index_dir)
     except FileNotFoundError:
       return self.fail(f"no index found in {s_index_dir}; run ingest first")
+    except ValueError as obj_error:
+      # a saved index from another model, or damaged index files
+      return self.fail(str(obj_error))
 
     try:
       obj_bm25 = Bm25Index()
@@ -112,13 +146,57 @@ class Cli:
       return self.fail(str(obj_error))
 
     for i_rank, obj_hit in enumerate(l_hits, start=1):
-      self.print_hit(i_rank, obj_hit)
+      self.print_hit(i_rank, obj_hit, b_brief)
     self.print_answer(self.answer(s_question, l_hits, obj_extractive, b_generate))
     return self.I_OK
 
-  def eval(self) -> int:
-    """Placeholder for the evaluator command; always reports that it is not implemented."""
-    print("eval is not implemented yet", file=sys.stderr)
+  def eval(
+    self, s_questions_path: str, s_corpus_dir: str, l_sizes: list[int], i_overlap: int, i_gate_top_k: int,
+    s_cache_dir: str, s_out_path: str, b_rebuild: bool, b_build_only: bool,
+  ) -> int:
+    """Run the evaluation and write the report, or only build the index caches; return an exit code."""
+    try:
+      obj_store = EvalIndexStore(s_cache_dir, self.obj_embedder)
+      if b_build_only:
+        return self.build_only(obj_store, Loader(s_corpus_dir).load(), l_sizes, i_overlap, b_rebuild)
+
+      l_questions = QuestionLoader().load(s_questions_path)
+      l_docs = Loader(s_corpus_dir).load()
+      obj_validation = QuestionValidator(l_docs).validate(l_questions)
+      if obj_validation.l_problems:
+        return self.fail_problems(obj_validation.l_problems)
+
+      obj_evaluator = Evaluator(obj_store, l_sizes, i_overlap, i_gate_top_k=i_gate_top_k)
+      if b_rebuild:
+        obj_evaluator.prepare(l_docs, b_rebuild=True)
+      obj_result = obj_evaluator.run(l_docs, l_questions)
+      obj_writer = ReportWriter(obj_validation.d_overlap)
+      print(obj_writer.console_text(obj_result, l_questions))
+      obj_writer.write(s_out_path, obj_result, l_questions)
+    except (FileNotFoundError, ValueError) as obj_error:
+      return self.fail(str(obj_error))
+
+    print(f"report: {s_out_path}")
+    return self.I_OK
+
+  def build_only(
+    self, obj_store: EvalIndexStore, l_docs: list[Document], l_sizes: list[int], i_overlap: int, b_rebuild: bool,
+  ) -> int:
+    """Build or load the index cache of every size and print its chunk count, origin and time."""
+    for i_size in l_sizes:
+      f_start = time.perf_counter()
+      # one evaluator per size, so each size gets its own timing
+      obj_bundle = Evaluator(obj_store, [i_size], i_overlap).prepare(l_docs, b_rebuild)[0]
+      f_elapsed = time.perf_counter() - f_start
+      s_origin = "loaded" if obj_bundle.b_loaded else "built"
+      print(f"size {i_size}: {len(obj_bundle.l_chunks)} chunks, {s_origin}, {f_elapsed:.2f} s")
+    return self.I_OK
+
+  def fail_problems(self, l_problems: list[str]) -> int:
+    """Print the first question-set problems to stderr and return the usage-error exit code."""
+    print(f"error: the question set has {len(l_problems)} problems", file=sys.stderr)
+    for s_problem in l_problems[:self.I_MAX_PROBLEMS]:
+      print(f"  {s_problem}", file=sys.stderr)
     return self.I_USAGE_ERROR
 
   def answer(self, s_question: str, l_hits: list[HybridHit], obj_extractive: Answerer, b_generate: bool) -> Answer:
@@ -141,8 +219,8 @@ class Cli:
     print(f"note: {LlmClient.S_KEY_VARIABLE} is not set; showing the extractive answer")
     return None
 
-  def print_hit(self, i_rank: int, obj_hit: HybridHit) -> None:
-    """Print one hit: rank, marker, dense, BM25 and fused scores, then the chunk text."""
+  def print_hit(self, i_rank: int, obj_hit: HybridHit, b_brief: bool = False) -> None:
+    """Print one hit: rank, marker, dense, BM25 and fused scores, then the chunk text (cut short if b_brief)."""
     obj_chunk = obj_hit.obj_chunk
     print(
       f"{i_rank}. [{obj_chunk.s_doc_id}#{obj_chunk.i_index}]"
@@ -150,7 +228,10 @@ class Cli:
       f"  bm25 {self.format_score(obj_hit.f_bm25_score)}"
       f"  fused {obj_hit.f_rrf_score:.4f}"
     )
-    print(obj_chunk.s_text)
+    s_text = obj_chunk.s_text
+    if b_brief and len(s_text) > self.I_BRIEF_LENGTH:
+      s_text = s_text[:self.I_BRIEF_LENGTH] + "..."
+    print(s_text)
     print()
 
   def print_answer(self, obj_answer: Answer) -> None:
