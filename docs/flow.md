@@ -29,7 +29,7 @@ flowchart TD
   classDef done fill:#d4edda,stroke:#2e7d32,color:#1b4d20
   classDef todo fill:#fff3cd,stroke:#b58900,color:#5c4400
   class files,loader,chunker,dense,question,bm25,densesearch,fuser,answerer,answer done
-  class testset,evaluator,metrics,results todo
+  class testset,evaluator,metrics,results done
 ```
 
 Legend: green means built and merged, yellow means not built yet. The dotted lines show that both searches read the saved index.
@@ -60,13 +60,28 @@ Finally, `Cli.ingest` prints the counts, the settings, the index folder and the 
 8. `Answerer.answer()` applies the gate in `is_found()`. If the best dense score among the hits is below the threshold, the result is "Not found in the corpus." Otherwise `format_sources()` builds the extractive answer, or `LlmClient.generate()` writes one from the same sources.
 9. `Cli.print_answer()` prints the answer text and a line such as `found: yes, written by a model: no`.
 
-## 3. Eval (not built yet)
+## 3. Eval
 
-`uv run mini-rag eval` currently prints "eval is not implemented yet" and exits with code 2. `Evaluator` exists as a stub whose methods (`__init__`, `load_questions`, `evaluate`) raise `NotImplementedError`. The planned design, with its question set, relevance rule, metrics and threshold sweep, is in [decisions.md, D15](decisions.md#d15-eval-design-planned).
+`uv run mini-rag eval` calls `Cli.eval`:
+
+1. `QuestionLoader.load()` reads `eval/questions.json` and returns one `Question` per entry. A missing file, a malformed entry or a duplicate id prints an error and exits with code 2.
+2. `Loader.load()` reads the corpus, and `QuestionValidator.validate()` checks every question against it. If there are problems, the command prints up to 10 of them and exits with code 2.
+3. `Evaluator.run()` asks `EvalIndexStore.get_indexes()` for the indexes of each chunk size. The store loads the dense index from `.cache/eval/size_<size>_overlap_<overlap>` when `meta.json` matches the size, overlap, model name and corpus fingerprint. Otherwise it chunks, embeds and saves. It rebuilds the BM25 index from the chunks every time.
+4. For each size, `Evaluator.run_size()` wraps the indexes in `Bm25Method`, `DenseMethod` and `HybridMethod`. All three implement `RetrievalMethod.rank()`.
+5. Each method ranks every answerable question to depth 10. `Evaluator.outcome()` calls `RelevanceJudge.is_relevant()` on each returned chunk, which is true when the chunk contains the question's `must_contain` phrase, and records a `QuestionOutcome`.
+6. `HybridMethod.hits()` then returns the top 5 hybrid hits for every question, answerable or not, and `Evaluator.best_dense()` keeps the highest dense score among them.
+7. `ThresholdSweeper.sweep()` turns those best scores into one `SweepRow` per threshold from 0.40 to 0.80.
+8. `ReportWriter.console_text()` gives the text that `Cli.eval` prints (Table 1 and Table 3), and `ReportWriter.write()` saves all tables to `eval/results.md`. `ReportTables` builds the tables and uses `MetricCalculator` for hit@k, recall@k and MRR.
+
+With `--build-only`, `Cli.build_only` runs `Evaluator.prepare()` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds. It loads no questions and writes no report.
+
+### How the sweep reads the dense score
+
+The sweep uses the gate's own rule. `Answerer.is_found()` takes the highest non-None dense score among the hits and compares it with the threshold. `Evaluator.best_dense()` stores that same maximum for the top 5 hybrid hits of each question, and `ThresholdSweeper.is_found()` counts a question as found when the stored score is at least the threshold. A test runs both on the same hits and checks that they agree. The score belongs to whichever of the five hits has the highest cosine, which need not be the hit ranked first. The design and the measured results are in [decisions.md, D15](decisions.md#d15-eval-design) and [D19](decisions.md#d19-gate-sweep).
 
 ## Data types
 
-All five are frozen dataclasses.
+All are frozen dataclasses except `EvalResult`.
 
 | Type | Fields | Made by | Meaning |
 |---|---|---|---|
@@ -75,6 +90,10 @@ All five are frozen dataclasses.
 | `SearchHit` | `obj_chunk: Chunk`, `f_score: float` | `Bm25Index`, `DenseIndex` | One result from a single retriever, with that retriever's score. |
 | `HybridHit` | `obj_chunk: Chunk`, `f_rrf_score: float`, `f_dense_score: float \| None`, `f_bm25_score: float \| None` | `HybridRetriever` | One fused result. A score is `None` when that retriever didn't return the chunk among its candidates. |
 | `Answer` | `s_text: str`, `l_sources: list[Chunk]`, `b_found: bool`, `b_generated: bool` | `Answerer` | The final answer. `l_sources` is empty when nothing was found, and `b_generated` is `True` only when a model wrote `s_text`. |
+| `Question` | `s_id: str`, `s_text: str`, `b_answerable: bool`, `s_source_doc: str`, `s_must_contain: str`, `t_absent_terms: tuple[str, ...]`, `s_topic: str` | `QuestionLoader` | One eval question. Answerable questions fill `s_source_doc` and `s_must_contain`; unanswerable ones fill `t_absent_terms` and `s_topic`. Unused fields are `""` or an empty tuple. |
+| `QuestionOutcome` | `s_id: str`, `i_first_rank: int \| None`, `i_total_relevant: int`, `d_found_at_k: dict[int, int]` | `Evaluator` | How one method did on one answerable question. `i_first_rank` is 1-based and `None` when no relevant chunk was in the top 10. `d_found_at_k` counts the relevant chunks in the top 1, 3 and 5. |
+| `SweepRow` | `f_threshold: float`, `i_answerable_rejected: int`, `i_answerable_total: int`, `i_unanswerable_accepted: int`, `i_unanswerable_total: int` | `ThresholdSweeper` | The two kinds of gate error at one threshold. |
+| `EvalResult` | `s_corpus_fingerprint: str`, `s_model_name: str`, `i_overlap: int`, `i_depth: int`, `i_gate_top_k: int`, `l_size_results: list[SizeResult]` | `Evaluator` | One eval run. Each `SizeResult` holds a chunk size's chunk count, the outcomes per method, the best dense score per question and the sweep rows. |
 
 ## Scores
 
@@ -93,10 +112,12 @@ All paths are relative to the project root.
 | `data/corpus/` | The 20 article texts and `SOURCES.md` with each article's revision id and SHA-256 | yes |
 | `data/corpus_titles.txt` | The article titles that `CorpusDownloader` fetches | yes |
 | `.cache/index/` | `vectors.npy` (1,741 × 384 float32) and `chunks.json` (chunks plus model name), written by `ingest` | no |
+| `.cache/eval/` | One folder per chunk setting, such as `size_500_overlap_100`, with `vectors.npy`, `chunks.json` and `meta.json`, written by `eval` | no |
 | `.cache/fastembed/` | The quantised embedding model, in `models--Qdrant--bge-small-en-v1.5-onnx-Q`, about 64 MB | no |
 | `.cache/huggingface/` | Hugging Face hub files, kept here by `HF_HOME` | no |
 | `.cache/pytest-tmp/` | Temporary folders made by tests | no |
-| `eval/` | Empty apart from `.gitkeep`; reserved for the eval's files | yes |
+| `eval/questions.json` | The 25 answerable and 6 unanswerable eval questions | yes |
+| `eval/results.md` | The report of the last eval run, written by `eval` | yes |
 | `scripts/env.ps1` | Sets `FASTEMBED_CACHE_PATH` and `HF_HOME` for the session | yes |
 | `src/mini_rag/` | The package, one class per file | yes |
 | `tests/` | The test suite and its fakes | yes |
@@ -120,4 +141,4 @@ Here's how to read it.
 - **Fusion.** Hit 3 is first in the dense ranking alone, so its fused score is 1/61, about 0.0164. Hits 4 and 5 are each second in one ranking, so both get 1/62, about 0.0161. The tie keeps BM25's hit first, which is why `tokamak#94` comes before `chernobyl_disaster#6`. Hit 1 ranks first because both retrievers returned it.
 - **Gate.** The top fused hit has a dense score of 0.502, but the gate reads the best dense score among all five hits, 0.528. That's at least 0.5, so the answer is reported as found and the five chunk texts are printed as the extractive answer. That's a wrong acceptance.
 
-With `--threshold 0.6` the same hits come back, 0.528 is below the threshold, and the output is "Not found in the corpus." with `found: no`. The default stays at 0.5 for now because one unanswerable question doesn't show how many answerable questions 0.6 would reject. The planned threshold sweep in the eval will measure both kinds of error.
+With `--threshold 0.6` the same hits come back, 0.528 is below the threshold, and the output is "Not found in the corpus." with `found: no`. One unanswerable question doesn't show how many answerable questions 0.6 would reject. The threshold sweep in `eval/results.md` counts both kinds of error at each threshold, and the default stays at 0.5 (see [decisions.md, D19](decisions.md#d19-gate-sweep)).

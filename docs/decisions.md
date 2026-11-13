@@ -1,6 +1,6 @@
 # Design decisions
 
-Each entry records one decision. Numbers come from the included corpus and the saved index unless a line says otherwise. Entries marked "planned" describe work that isn't built yet.
+Each entry records one decision. Numbers come from the included corpus and the saved index unless a line says otherwise. The last section of each entry states whether it is built. Eval numbers come from the run recorded in `eval/results.md`.
 
 ## D01 Light dependency set
 
@@ -66,7 +66,7 @@ Character windows are simple to reason about and to test, and their behaviour do
 
 ### Trade-off or status
 
-Chunks start and end mid-word and mid-sentence, which adds a little noise to both retrievers. Size 1000 is to be compared against 500 in the eval (D15). Built and merged.
+Chunks start and end mid-word and mid-sentence, which adds a little noise to both retrievers. The eval compares size 1000 against 500 (D18); the default stays at 500. Built and merged.
 
 ## D04 Chunk identity
 
@@ -200,7 +200,7 @@ Cosine scores have a fixed range and mean the same thing from query to query, wh
 
 ### Trade-off or status
 
-The threshold will be calibrated with the eval's threshold sweep (D15). Because the gate reads the best score among the returned hits, a larger `--top-k` can turn "not found" into "found". The gate is built and merged; the calibration is planned.
+The eval's threshold sweep counts both kinds of error at each threshold (D19). The default stays at 0.5, and the choice of a new value is deferred there. Because the gate reads the best score among the returned hits, a larger `--top-k` can turn "not found" into "found". The gate is built and merged.
 
 ## D10 Opt-in generation
 
@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 129 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 202 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -288,17 +288,17 @@ Tests should be fast, deterministic and runnable offline. `DenseIndex`, `Cli`, `
 
 ### Trade-off or status
 
-The fakes don't check how well the real model ranks text; the slow test covers one case of that, and the eval (D15) is meant to cover it properly. Built and merged.
+The fakes don't check how well the real model ranks text; the slow test covers one case of that, and the eval (D18) measures it on 25 questions with the real model. Built and merged.
 
 ## D14 Command-line interface
 
 ### Decision
 
-Provide one `mini-rag` command with `ingest`, `query` and `eval` subcommands. `eval` is a placeholder for now.
+Provide one `mini-rag` command with `ingest`, `query` and `eval` subcommands.
 
 ### What it does
 
-`ingest` loads, chunks, embeds and saves the corpus, then prints the document and chunk counts, the settings, the index folder and the elapsed time. `query` prints each hit with its dense, BM25 and fused scores, then the answer and whether it was found and whether a model wrote it. `eval` prints "eval is not implemented yet" and exits with code 2.
+`ingest` loads, chunks, embeds and saves the corpus, then prints the document and chunk counts, the settings, the index folder and the elapsed time. `query` prints each hit with its dense, BM25 and fused scores, then the answer and whether it was found and whether a model wrote it. `eval` runs the evaluation and writes its report (D21).
 
 ### How
 
@@ -310,29 +310,29 @@ One entry point keeps the README short, and returning exit codes from `run()` le
 
 ### Trade-off or status
 
-`ingest` and `query` are built and merged. `eval` isn't built yet.
+`ingest` and `query` are built and merged. `eval` is built; its options are in D21.
 
-## D15 Eval design (planned)
+## D15 Eval design
 
 ### Decision
 
-Measure retrieval with a hand-written question set. This entry is planned; nothing in it is built yet.
+Measure retrieval and the answer gate with a hand-written question set. The eval runs offline and uses no language model.
 
 ### What it does
 
-It will compare BM25, dense and hybrid retrieval at chunk sizes 500 and 1000, and sweep the answer threshold.
+`mini-rag eval` compares BM25, dense and hybrid retrieval at chunk sizes 500 and 1000 with overlap 100. It also sweeps the gate threshold from 0.40 to 0.80 and writes every table to `eval/results.md`.
 
 ### How
 
-Each question has a `must_contain` phrase. A retrieved chunk counts as relevant if it contains that phrase, ignoring case. Phrases are kept under about 60 characters, so the 100-character overlap (D03) guarantees each one appears whole in some chunk. The metrics are hit@k and recall@k for k = 1, 3 and 5, plus MRR. The threshold sweep runs from 0.40 to 0.80 and reports, at each value, how many answerable questions are wrongly rejected and how many unanswerable ones are wrongly accepted. The set will have about 25 answerable and 5 unanswerable questions, with some unanswerable ones on topic for the corpus.
+Each answerable question has a `must_contain` phrase, and a chunk counts as relevant if it contains that phrase. `QuestionLoader` and `QuestionValidator` read and check the questions (D17). `Evaluator` ranks them with each method and `ReportTables` computes the metrics (D18). `ThresholdSweeper` counts the gate errors (D19). `EvalIndexStore` caches the embedded chunks per chunk size (D20), and `Cli.eval` ties the steps together (D21).
 
 ### Why
 
-A phrase check needs no hand-labelled chunk ids, so it still works when the chunk size changes. On-topic unanswerable questions test the gate where it's hardest.
+A phrase check needs no hand-labelled chunk ids, so the same questions work at any chunk size. Phrases are at most 60 characters, so the 100-character overlap (D03) puts each one whole in at least one chunk. On-topic unanswerable questions test the gate where it's hardest.
 
 ### Trade-off or status
 
-Planned. With about 25 questions, a difference of 1 to 2 questions is noise, and hand-written questions tend to share words with the source text, which favours BM25.
+Built. The numbers come from one run on 31 questions. A difference of 1 to 2 questions is noise, and hand-written questions tend to share words with the source text, which favours BM25.
 
 ## D16 Workflow
 
@@ -355,3 +355,149 @@ Small pull requests are easy to review, and squash merging leaves one commit per
 ### Trade-off or status
 
 In use.
+
+## D17 Question set
+
+### Decision
+
+Keep 25 answerable and 6 unanswerable hand-written questions in `eval/questions.json`, and check them against the corpus before every eval run.
+
+### What it does
+
+An answerable question names its `source_doc` and a `must_contain` phrase copied from that document. An unanswerable question has a `topic` (`on_topic` or `off_topic`) and `absent_terms` that a correct answer would contain. The 25 answerable questions cover all 20 documents, and the unanswerable ones are 3 on topic and 3 off topic.
+
+### How
+
+`QuestionLoader.load` raises `FileNotFoundError` for a missing file and `ValueError`, with the question id, for a malformed entry or a duplicate id. `QuestionValidator.validate` returns a `ValidationResult` with a list of problems. It compares text after `RelevanceJudge.normalise`, which lowercases and collapses whitespace. The checks and their reasons:
+
+- The `source_doc` must be a loaded document and must contain the phrase. Without that, no chunk could be relevant.
+- The phrase must be 6 to 60 characters on one line. Shorter phrases match by accident, and longer ones might not fit whole in a chunk (D15).
+- The phrase must not occur inside the question text, because the question would then hand the answer to keyword search.
+- The phrase may occur in at most 2 documents, so a chunk from an unrelated article rarely counts as relevant. In the current set every phrase occurs in exactly one document.
+- No absent term of an unanswerable question may occur anywhere in the corpus. This confirms the corpus can't answer it.
+- The set needs 24 to 28 answerable and 5 to 7 unanswerable questions, with at least 2 of each topic.
+- The answerable questions must cover at least 14 documents with at most 3 questions each, so no single article dominates.
+- At least 8 answerable questions need an overlap of 0.40 or less, and at least 4 phrases must contain a digit. The first keeps paraphrased questions in the set, and the second keeps numbers and dates in it.
+
+The overlap of a question is the share of its tokens longer than 3 characters that also occur in the source sentence around the phrase. A sentence ends at a full stop followed by whitespace, or at a line break.
+
+### Why
+
+The checks catch a broken question before it distorts a metric. The overlap figure makes the "shares words with the text" bias visible: the report splits its results at 0.40 (D18).
+
+### Trade-off or status
+
+Built. In the current set 14 of the 25 answerable questions have an overlap of 0.40 or less, and 13 phrases contain a digit. The questions were written after reading the source sentences, so they aren't a sample of what real users would ask.
+
+## D18 Evaluator and metrics
+
+### Decision
+
+Rank every answerable question to depth 10 with BM25, dense and hybrid retrieval, and report hit@k, recall@k and MRR per method and chunk size.
+
+### What it does
+
+`Evaluator.run` returns an `EvalResult` with one `SizeResult` per chunk size. `ReportWriter` turns it into five tables and a per-question appendix.
+
+### How
+
+`Bm25Method`, `DenseMethod` and `HybridMethod` implement `RetrievalMethod.rank`. The hybrid method uses `HybridRetriever` with its defaults (D08). `RelevanceJudge.is_relevant` calls a chunk relevant when the normalised phrase occurs in the normalised chunk text. `MetricCalculator` defines the metrics:
+
+- hit@k is true when the first relevant chunk is at rank k or better.
+- recall@k is the number of relevant chunks in the top k divided by the number of relevant chunks in the whole chunk set. A phrase can sit in two overlapping chunks, and recall@1 is then at most 0.5 for that question.
+- The reciprocal rank is 1 divided by the rank of the first relevant chunk, or 0 when none is in the top 10. MRR is its mean over the questions.
+
+Table 2 compares two rankings question by question on first rank and counts wins, losses and ties, with "not retrieved" as the worst rank. Table 5 splits hit@5 and MRR by overlap group (D17).
+
+### Why
+
+Depth 10 is enough for hit@5 and recall@5 and lets MRR credit ranks 6 to 10. The pairwise counts show whether a gap in the means comes from many questions or from a few. No confidence interval is reported: the report gives raw counts out of 25, and its reading note says that 1 to 2 questions of difference is noise.
+
+### Trade-off or status
+
+Built. Measured results (hit@5, MRR):
+
+| Chunk size | BM25 | dense | hybrid |
+|---|---|---|---|
+| 500 | 16/25, 0.528 | 21/25, 0.688 | 19/25, 0.587 |
+| 1000 | 19/25, 0.656 | 21/25, 0.721 | 22/25, 0.735 |
+
+Hybrid at size 1000 has the better first rank on 9 questions, hybrid at size 500 on 4, and 12 are ties. At size 500, BM25 finds 6 of the 14 low-overlap questions in its top 5 and 10 of the 11 high-overlap ones. The default chunk size stays at 500; the eval changes no default.
+
+## D19 Gate sweep
+
+### Decision
+
+Sweep the gate threshold over the eval questions and report both kinds of error. Leave the default threshold at 0.5.
+
+### What it does
+
+For each threshold from 0.40 to 0.80 in steps of 0.05, Table 3 shows how many answerable questions the gate would reject and how many unanswerable ones it would accept.
+
+### How
+
+For every question, `Evaluator.best_dense` takes the top 5 hybrid hits and keeps the highest non-None dense score. `ThresholdSweeper.sweep` counts a question as found when that score is at least the threshold, which is the rule in `Answerer.is_found` (D09). A test checks that the two agree on the same hits.
+
+### Why
+
+One threshold trades wrong rejections against wrong acceptances, and the single World Cup example in D09 showed only one side.
+
+### Trade-off or status
+
+Built. The measured rows are (answerable rejected, unanswerable accepted):
+
+| Threshold | Size 500 | Size 1000 |
+|---|---|---|
+| 0.40 | 0/25, 6/6 | 0/25, 6/6 |
+| 0.50 | 0/25, 5/6 | 0/25, 6/6 |
+| 0.60 | 0/25, 3/6 | 0/25, 3/6 |
+| 0.70 | 3/25, 2/6 | 4/25, 2/6 |
+| 0.80 | 16/25, 0/6 | 18/25, 0/6 |
+
+At both sizes the total error count is lowest at 0.55 and 0.60, with 3 errors. The sweep shows that the two groups overlap: at size 500 the best dense score runs from 0.648 to 0.890 for answerable questions and from 0.489 to 0.733 for unanswerable ones, so no threshold separates them on this set.
+
+The sweep can't show how a threshold performs on new questions, because a value picked from Table 3 is tuned on the questions it is measured on. It covers top-k 5 only, and the gate's result depends on top-k (D09). With 6 unanswerable questions, one question is a sixth of that group. For these reasons the default stays at 0.5 and the choice of a new value is deferred.
+
+## D20 Eval index cache
+
+### Decision
+
+Cache the embedded chunks of each eval chunk setting in its own folder under `.cache/eval`, apart from the query index in `.cache/index`.
+
+### What it does
+
+The first eval run for a setting embeds the corpus and saves it. Later runs load the saved vectors, so only the first run pays for embedding.
+
+### How
+
+`EvalIndexStore.get_indexes` uses the folder `size_<size>_overlap_<overlap>`. It holds the two files written by `DenseIndex.save` plus `meta.json` with the size, overlap, model name, chunk count and corpus fingerprint. The fingerprint is a SHA-256 over the sorted lines `doc_id:sha256(text)`. The store loads the cache only when the size, overlap, model name and fingerprint all match and the files load cleanly; otherwise it rebuilds and overwrites the folder. `--rebuild` forces that. BM25 is rebuilt from the chunks on every call.
+
+### Why
+
+The eval needs two chunk sizes, and `.cache/index` holds one index that `query` depends on. A separate cache means an eval run can't replace the index a user queries. The fingerprint stops a cache from being loaded after the corpus changes; a test covers that case.
+
+### Trade-off or status
+
+Built. In one CPU run, building took 160 seconds for size 500 (1,741 chunks) and 154 seconds for size 1000 (780 chunks). The size 500 vectors are computed again even when `.cache/index` already holds the same chunks.
+
+## D21 CLI changes
+
+### Decision
+
+Replace the `eval` placeholder with the real command, add `--brief` to `query`, and report a bad saved index as an error line.
+
+### What it does
+
+`eval` validates the questions, runs the evaluator, prints Table 1 and Table 3 and writes the report. `query --brief` cuts each hit's text to 160 characters and appends `...` only when it cut something. `query` on an index saved under another model name prints `error: <message>` and exits with code 2.
+
+### How
+
+The `eval` options are `--questions` (default `eval/questions.json`), `--corpus` (`data/corpus`), `--sizes` (`500,1000`), `--overlap` (100), `--gate-top-k` (5), `--cache-dir` (`.cache/eval`), `--out` (`eval/results.md`), `--rebuild` and `--build-only`. With `--build-only`, `Cli.build_only` calls `Evaluator.prepare` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds; it loads no questions and writes no report. If the validator finds problems, `Cli.fail_problems` prints up to 10 of them and the command exits with code 2. `FileNotFoundError` and `ValueError` become an error line with exit code 2. `Cli.query` now also catches the `ValueError` that `DenseIndex.load` raises for a model name mismatch or damaged files (D07). `Cli` passes its embedder to `EvalIndexStore`, so tests run the whole command with a fake embedder.
+
+### Why
+
+Validating first means a broken question set stops the run before any ranking. `--build-only` separates the slow embedding step from the evaluation. `--brief` keeps a query's output short enough to scan.
+
+### Trade-off or status
+
+Built. `--brief` shortens only the hit list; the extractive answer below it still prints the full chunk texts.

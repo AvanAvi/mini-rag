@@ -8,7 +8,7 @@ Ingest runs once. It reads the text files in `data/corpus`, cuts them into overl
 
 A query loads that index and searches it twice. BM25 finds chunks that share words with the question, and dense search finds chunks whose meaning is close to it. Reciprocal rank fusion merges the two rankings into one list. The answerer then checks the best dense (cosine) score among the returned hits against a threshold. Below it, the answer is "not found". Above it, the answer is the retrieved chunk texts, each with a citation marker such as `[tokamak#94]`. With `--generate`, a language model writes the answer from those chunks instead.
 
-An evaluation step that measures retrieval quality on a question set is planned but not built yet.
+The `eval` command measures retrieval on a hand-written question set. It compares BM25, dense and hybrid search at two chunk sizes and sweeps the gate threshold. The numbers from the last run are in [eval/results.md](eval/results.md).
 
 ## Status
 
@@ -37,7 +37,7 @@ flowchart TD
   classDef done fill:#d4edda,stroke:#2e7d32,color:#1b4d20
   classDef todo fill:#fff3cd,stroke:#b58900,color:#5c4400
   class files,loader,chunker,dense,question,bm25,densesearch,fuser,answerer,answer done
-  class testset,evaluator,metrics,results todo
+  class testset,evaluator,metrics,results done
 ```
 
 Legend: green means built and merged, yellow means not built yet.
@@ -92,17 +92,36 @@ Query options:
 - `--top-k N` sets how many fused hits to return (default 5).
 - `--threshold F` sets the dense score the best hit must reach to count as found (default 0.5, allowed range -1.0 to 1.0). The question above is answered at `--threshold 0.5` and reported as not found at `--threshold 0.6`, which is the right result because no article in the corpus mentions the World Cup.
 - `--generate` asks a language model to write the answer from the retrieved chunks.
+- `--brief` cuts each hit's text to 160 characters and adds `...` when it was cut.
 
 Generation is opt-in. Without `--generate` the answer is extractive: the retrieved chunk texts under their markers. The optional feature uses generation with a language model through the Anthropic API. It needs the `llm` extra (`uv sync --extra llm`) and the `ANTHROPIC_API_KEY` variable already set in the PowerShell session. If the key isn't set or the package is missing, the command prints a note and shows the extractive answer.
 
-`uv run mini-rag eval` exists as a placeholder and exits with code 2.
+Run the evaluation:
+
+```powershell
+uv run mini-rag eval
+```
+
+The command reads `eval/questions.json` and checks every question against the corpus. It then compares BM25, dense and hybrid retrieval at chunk sizes 500 and 1000, prints the metrics table and the threshold sweep, and writes the full report to `eval/results.md`.
+
+Eval options:
+
+- `--sizes 500,1000` sets the chunk sizes to compare.
+- `--build-only` embeds the corpus for each size, saves the result under `.cache/eval` and stops there. It loads no questions and writes no report. A later run with the same corpus and settings loads that cache instead of embedding again.
+- `--rebuild` ignores the cache and embeds again.
+- `--out PATH` changes where the report is written.
+
+Embedding is the slow part. In one run on a CPU, `--build-only` took 160 seconds for size 500 (1,741 chunks) and 154 seconds for size 1000 (780 chunks).
 
 ## Known limits
 
-- The default threshold of 0.5 is a placeholder. It hasn't been calibrated yet, and the unanswerable question above passes it.
+- The default threshold of 0.5 is unchanged, and the unanswerable question above passes it. The sweep in [eval/results.md](eval/results.md) counts the errors at each threshold from 0.40 to 0.80.
+- A threshold chosen from the sweep is tuned on the questions it is measured on, so it will look better there than on new questions.
+- The sweep covers top-k 5 only.
 - The gate reads the best dense score among the returned hits, so the result depends on `--top-k`. A larger top-k can bring in a chunk with a higher dense score.
 - Wikipedia's plain-text extracts drop tables, and formulas lose their layout. In `data/corpus/nuclear_fusion.txt`, "in the following table." is followed by an empty line, and `data/corpus/plasma_physics.txt` shows the ionisation fraction as `α=nini+nn`.
-- The evaluation isn't built yet. When it is, its set of about 25 hand-written questions will be small, so a difference of 1 to 2 questions between two setups is noise. Hand-written questions also tend to reuse words from the source text, which favours keyword search.
+- The evaluation uses 25 answerable and 6 unanswerable hand-written questions. With so few, a difference of 1 to 2 questions between two setups is noise. Hand-written questions also tend to reuse words from the source text, which favours keyword search.
+- The unanswerable set is small. One question is a sixth of it, so a single question moves the acceptance rate by about 17 percentage points.
 
 ## License
 
