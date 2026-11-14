@@ -2,9 +2,16 @@
 
 import numpy as np
 
+from mini_rag.embedder import Embedder
 
-class CountingEmbedder:
+
+class CountingEmbedder(Embedder):
   """Wraps another embedder and counts the embed() calls made through it."""
+
+  @property
+  def s_name(self) -> str:
+    """Return the wrapped embedder's name."""
+    return self.obj_inner.s_name
 
   def __init__(self, obj_inner: object) -> None:
     """Store the wrapped embedder and start the count at zero."""

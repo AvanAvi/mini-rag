@@ -2,8 +2,10 @@
 
 import os
 
+from mini_rag.generator import Generator
 
-class LlmClient:
+
+class LlmClient(Generator):
   """Sends a system and a user prompt to a Claude model and returns the reply text."""
 
   S_KEY_VARIABLE = "ANTHROPIC_API_KEY"
@@ -13,6 +15,11 @@ class LlmClient:
     self.s_model = s_model
     self.i_max_tokens = i_max_tokens
     self.obj_client: object | None = None
+
+  @property
+  def s_name(self) -> str:
+    """Return the model name this client sends its requests to."""
+    return self.s_model
 
   @classmethod
   def is_available(cls) -> bool:

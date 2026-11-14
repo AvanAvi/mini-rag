@@ -1,0 +1,24 @@
+# Example config that swaps in the embedder from examples/custom_embedder.py.
+# Run from the project root:  mini-rag --config examples/custom.toml ingest
+
+[corpus]
+dir = "data/corpus"            # the included example corpus
+
+[embedder]
+kind = "custom"                # build the class named below instead of a fastembed model
+class = "examples.custom_embedder:HashedBagOfWordsEmbedder"  # "package.module:ClassName", imported from the working directory
+
+[embedder.options]
+i_dim = 256                    # passed to the class as a keyword argument
+
+[index]
+dir = ".cache/index_custom"    # its own folder, so the default index stays untouched
+
+[gate]
+threshold = 0.55               # not calibrated for this embedder; run "mini-rag --config examples/custom.toml calibrate"
+
+[generator]
+kind = "none"                  # no generation; --generate prints a note and shows the extractive answer
+
+[eval]
+cache_dir = ".cache/eval_custom"  # its own eval cache, so the default cache stays untouched

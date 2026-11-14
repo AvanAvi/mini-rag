@@ -3,14 +3,21 @@
 import numpy as np
 from fastembed import TextEmbedding
 
+from mini_rag.embedder import Embedder
 
-class FastEmbedEmbedder:
+
+class FastEmbedEmbedder(Embedder):
   """Turns passages and queries into embedding vectors with fastembed."""
 
   def __init__(self, s_model_name: str) -> None:
     """Load the fastembed model (downloads into FASTEMBED_CACHE_PATH if needed)."""
     self.s_model_name = s_model_name
     self.obj_model = TextEmbedding(model_name=s_model_name)
+
+  @property
+  def s_name(self) -> str:
+    """Return the fastembed model name, which identifies this embedder in a saved index."""
+    return self.s_model_name
 
   def embed(self, l_texts: list[str]) -> np.ndarray:
     """Return one passage embedding per text as a 2-D float32 array."""

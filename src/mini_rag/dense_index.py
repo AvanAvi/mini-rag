@@ -76,7 +76,8 @@ class DenseIndex:
     d_payload = json.loads((obj_dir / self.S_CHUNKS_FILE).read_text(encoding="utf-8"))
     if d_payload["s_model_name"] != self.s_model_name:
       raise ValueError(
-        f"Saved model {d_payload['s_model_name']!r} differs from {self.s_model_name!r}"
+        f"The index in {obj_dir} was built with embedder {d_payload['s_model_name']!r}, "
+        f"but the configured embedder is {self.s_model_name!r}; run ingest again"
       )
     arr_vectors = np.load(obj_dir / self.S_VECTORS_FILE, allow_pickle=False)
     l_chunks = [Chunk(**d_chunk) for d_chunk in d_payload["l_chunks"]]
