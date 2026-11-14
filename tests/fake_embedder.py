@@ -2,9 +2,16 @@
 
 import numpy as np
 
+from mini_rag.embedder import Embedder
 
-class FakeEmbedder:
+
+class FakeEmbedder(Embedder):
   """Looks up fixed vectors for passages and queries by their exact text."""
+
+  @property
+  def s_name(self) -> str:
+    """Return the name of this test double."""
+    return "fake-embedder"
 
   def __init__(self, d_passages: dict[str, list[float]], d_queries: dict[str, list[float]]) -> None:
     """Store the text-to-vector tables and start with no recorded calls."""

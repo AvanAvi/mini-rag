@@ -37,8 +37,11 @@ class QuestionValidator:
       obj_doc.s_doc_id: self.obj_judge.normalise(obj_doc.s_text) for obj_doc in l_docs
     }
 
-  def validate(self, l_questions: list[Question]) -> ValidationResult:
-    """Run every check and return the problems with the overlap and phrase-document figures."""
+  def validate(self, l_questions: list[Question], b_lenient: bool = False) -> ValidationResult:
+    """Run every check and return the problems with the overlap and phrase-document figures.
+
+    b_lenient keeps the per-question checks and skips the set-level rules, so a small set can pass.
+    """
     l_problems: list[str] = []
     d_overlap: dict[str, float] = {}
     d_phrase_docs: dict[str, int] = {}
@@ -52,7 +55,8 @@ class QuestionValidator:
       f_overlap = self.overlap(obj_question)
       if f_overlap is not None:
         d_overlap[obj_question.s_id] = f_overlap
-    l_problems.extend(self.set_problems(l_questions, d_overlap))
+    if not b_lenient:
+      l_problems.extend(self.set_problems(l_questions, d_overlap))
     return ValidationResult(l_problems=l_problems, d_overlap=d_overlap, d_phrase_docs=d_phrase_docs)
 
   def answerable_problems(self, obj_question: Question, i_docs: int) -> list[str]:

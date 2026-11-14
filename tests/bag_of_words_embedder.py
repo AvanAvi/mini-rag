@@ -4,9 +4,16 @@ import re
 
 import numpy as np
 
+from mini_rag.embedder import Embedder
 
-class BagOfWordsEmbedder:
+
+class BagOfWordsEmbedder(Embedder):
   """Deterministic embedder: one dimension per vocabulary word, valued by its count."""
+
+  @property
+  def s_name(self) -> str:
+    """Return the name of this test double."""
+    return "bag-of-words"
 
   def __init__(self, l_vocabulary: list[str]) -> None:
     """Store the vocabulary (lowercase words) and the word pattern."""

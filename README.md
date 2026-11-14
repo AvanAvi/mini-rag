@@ -32,11 +32,13 @@ flowchart TD
     evaluator --> metrics["Metrics<br/>hit@k, recall@k, MRR"]
     metrics --> results["results.md"]
   end
+  config["Config<br/>mini-rag.toml"] --> S1
+  config --> S2
   dense -.-> bm25
   dense -.-> densesearch
   classDef done fill:#d4edda,stroke:#2e7d32,color:#1b4d20
   classDef todo fill:#fff3cd,stroke:#b58900,color:#5c4400
-  class files,loader,chunker,dense,question,bm25,densesearch,fuser,answerer,answer done
+  class config,files,loader,chunker,dense,question,bm25,densesearch,fuser,answerer,answer done
   class testset,evaluator,metrics,results done
 ```
 
@@ -56,6 +58,8 @@ These steps use Windows PowerShell. You need [uv](https://docs.astral.sh/uv/) in
 uv sync
 uv run pytest
 ```
+
+Every command reads its settings from `mini-rag.toml` in the project root: the corpus folder, chunking, embedding model, retrieval, threshold, generator and eval files. The shipped file reproduces the included example, and a command-line option overrides the matching value in it. Use `--config PATH` to read another file.
 
 The default test run downloads nothing. The first `ingest` downloads the quantised embedding model, about 64 MB, into `.cache\fastembed`. Later runs reuse it.
 
@@ -113,6 +117,10 @@ Eval options:
 - `--fusion-grid` also evaluates hybrid search under 12 fusion settings (k of 5, 10, 20 or 60, each with a BM25 weight of 1.0, 0.5 or 0.25) and writes `fusion_grid.md` next to the report. It first prints whether each index was loaded from the cache or built. The last grid run is in [eval/fusion_grid.md](eval/fusion_grid.md).
 
 Embedding is the slow part. In one run on a CPU, `--build-only` took 160 seconds for size 500 (1,741 chunks) and 154 seconds for size 1000 (780 chunks).
+
+## Make your own mini-rag
+
+mini-rag is also a template. Edit `mini-rag.toml` to point it at your own folder of text files, a different embedding model and a different answer-writing model, then run `ingest` and `query` as above. Four commands help you build a small question set for your corpus and calibrate the threshold: `eval-init`, `eval-suggest`, `eval-check` and `calibrate`. The threshold belongs to the configured embedding model, so calibrate it again after you change the model. [docs/make-your-own.md](docs/make-your-own.md) walks through every step.
 
 ## Known limits
 

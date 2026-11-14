@@ -1,0 +1,35 @@
+# mini-rag configuration. These values reproduce the included Wikipedia example.
+# Command-line options override this file; keys left out fall back to the built-in defaults.
+
+[corpus]
+dir = "data/corpus"            # folder holding the documents, one file each
+extensions = [".txt"]          # file types to read; add ".md" to read Markdown files too
+
+[chunking]
+size = 500                     # characters per chunk
+overlap = 100                  # characters shared by neighbouring chunks
+
+[embedder]
+kind = "fastembed"             # "fastembed" or "custom"
+model = "BAAI/bge-small-en-v1.5"  # a model name fastembed supports
+
+[index]
+dir = ".cache/index"           # where ingest saves the index that query loads
+
+[retrieval]
+top_k = 5                      # fused hits returned per question
+rrf_k = 60                     # constant k of reciprocal rank fusion
+bm25_weight = 1.0              # weight of the keyword ranking in the fusion
+dense_weight = 1.0             # weight of the embedding ranking in the fusion
+
+[gate]
+threshold = 0.55               # lowest best dense score that counts as found; belongs to the embedder above
+
+[generator]
+kind = "anthropic"             # "anthropic", "openai_compatible", "none" or "custom"; only used with --generate
+model = "claude-sonnet-5-5"    # model name sent to the generator
+
+[eval]
+questions = "eval/questions.json"  # question set used by eval, eval-check and calibrate
+sizes = [500, 1000]            # chunk sizes compared by eval
+cache_dir = ".cache/eval"      # where eval and calibrate keep their embedded chunks

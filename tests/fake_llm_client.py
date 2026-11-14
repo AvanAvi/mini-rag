@@ -1,8 +1,15 @@
 """Test double that returns a fixed reply instead of calling a model."""
 
+from mini_rag.generator import Generator
 
-class FakeLlmClient:
+
+class FakeLlmClient(Generator):
   """Records every prompt pair it receives and returns a fixed reply."""
+
+  @property
+  def s_name(self) -> str:
+    """Return the name of this test double."""
+    return "fake-generator"
 
   def __init__(self, s_reply: str) -> None:
     """Store the reply to return and start with no recorded prompts."""

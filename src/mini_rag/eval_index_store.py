@@ -16,11 +16,16 @@ class EvalIndexStore:
 
   S_META_FILE = "meta.json"
 
-  def __init__(self, s_cache_dir: str = ".cache/eval", obj_embedder: object | None = None) -> None:
-    """Store the cache folder and the optional embedder passed on to DenseIndex."""
+  def __init__(
+    self, s_cache_dir: str = ".cache/eval", obj_embedder: object | None = None, s_model_name: str | None = None,
+  ) -> None:
+    """Store the cache folder, the optional embedder passed on to DenseIndex and the name saved with it.
+
+    s_model_name identifies the embedder in the cache; None means DenseIndex's default model name.
+    """
     self.s_cache_dir = s_cache_dir
     self.obj_embedder = obj_embedder
-    self.s_model_name = DenseIndex(obj_embedder=obj_embedder).s_model_name
+    self.s_model_name = s_model_name if s_model_name is not None else DenseIndex(obj_embedder=obj_embedder).s_model_name
 
   def get_indexes(self, l_docs: list[Document], i_size: int, i_overlap: int, b_rebuild: bool = False) -> IndexBundle:
     """Load the dense index from the cache if its meta.json matches, otherwise build and save it."""

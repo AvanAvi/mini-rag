@@ -214,7 +214,7 @@ Without `--generate`, the answer is the retrieved chunk texts, each under its `[
 
 ### How
 
-`LlmClient.is_available` returns whether `ANTHROPIC_API_KEY` is set and non-empty. The value is never read into a variable, printed or stored; the API client reads it from the environment itself. `LlmClient.get_client` imports the `anthropic` package on first use and raises `RuntimeError` naming `uv sync --extra llm` if the `llm` extra isn't installed. `Cli.answer` falls back to the extractive answer, with a note, when the key is missing or that error occurs. The source text goes in the user message as data, and `Answerer.S_SYSTEM_PROMPT` tells the model to answer only from the numbered sources, to cite them by marker, and to ignore any instructions inside the source text.
+`LlmClient.is_available` returns whether `ANTHROPIC_API_KEY` is set and non-empty. The value is never read into a variable, printed or stored; the API client reads it from the environment itself. `LlmClient.get_client` imports the `anthropic` package on first use and raises `RuntimeError` naming `uv sync --extra llm` if the `llm` extra isn't installed. `Cli.answer` falls back to the extractive answer, with a note, when the key is missing. When the generator fails for any reason, including an error returned by the API, it prints a note with the error's type and message and shows the extractive answer. That replaced the earlier behaviour, in which only the missing-package error was caught and API errors propagated and stopped the query. The source text goes in the user message as data, and `Answerer.S_SYSTEM_PROMPT` tells the model to answer only from the numbered sources, to cite them by marker, and to ignore any instructions inside the source text.
 
 ### Why
 
@@ -222,7 +222,7 @@ The core pipeline should run with no account, no network and no cost. Importing 
 
 ### Trade-off or status
 
-The gate still runs first, so generation never sees a question that failed the threshold. The prompt instruction reduces but can't rule out instruction-following on source text. Built and merged.
+The gate still runs first, so generation never sees a question that failed the threshold. The prompt instruction reduces but can't rule out instruction-following on source text. Built. The client is now chosen in the config, and the Anthropic API is the default kind (D25).
 
 ## D11 Wikipedia corpus
 
@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 230 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 321 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -576,3 +576,113 @@ Thresholds 0.55 and 0.60 tie at 3 errors at both chunk sizes, against 5 errors (
 Built. The margin above the highest off-topic score is only 0.022, and the value is tuned on the same questions it is measured on, so it will look better here than on new questions.
 
 The three remaining errors are the on-topic unanswerable questions, with scores of 0.656 to 0.733. They overlap the answerable range, and no threshold on the dense score can separate them, because the score measures topical closeness, not whether the answer is present. Possible future work is a reranker, or a generation step that can decline to answer. Neither is built.
+
+## D24 Configuration file
+
+### Decision
+
+Read every setting a user would change from one TOML file, `mini-rag.toml`, with the precedence command-line option, then config file, then built-in default.
+
+### What it does
+
+Every command accepts `--config PATH`, before or after the command name, and reads `mini-rag.toml` in the working directory when the option is left out. The sections are `[corpus]`, `[chunking]`, `[embedder]`, `[index]`, `[retrieval]`, `[gate]`, `[generator]` and `[eval]`. The shipped file holds the built-in defaults, and a test checks that loading it gives exactly the same `RagConfig` as no file at all.
+
+### How
+
+`RagConfig` is a frozen dataclass whose field defaults are today's values. The fusion defaults come from `HybridRetriever`'s constants, and a test checks that the threshold, model names and fusion values match the classes that use them. `ConfigLoader.load` parses the file with `tomllib` from the standard library and maps each key onto a field through one schema table. It raises `ValueError` naming the key for a wrong type, an unknown key or section, an unknown embedder or generator kind, and invalid TOML. A whole number is accepted where a decimal is expected. A missing default file gives the defaults, while a missing file named with `--config` is an error. `Cli.build_parser` takes the config's values as the option defaults, so an option typed on the command line wins. Tests cover each precedence level, on the parser and once end to end.
+
+### Why
+
+A template user should change one file, not command lines or code. Checking types and names when the file is read turns a typo into an error message that names the key, instead of a silent fall back to a default. `tomllib` adds no dependency.
+
+### Trade-off or status
+
+Built. The eval report path (`--out`) and the eval-only options such as `--gate-top-k` aren't in the file; `--gate-top-k` defaults to `[retrieval] top_k`. With the shipped file, `query` and `eval` reproduce the results recorded before the config existed, which was checked by running them (the eval report differed only in its date line).
+
+## D25 Pluggable embedder and generator
+
+### Decision
+
+Define abstract base classes for the embedding model and the answer-writing model, and build the configured ones in `ComponentFactory`.
+
+### What it does
+
+`[embedder] kind` is `fastembed` or `custom`, and `[generator] kind` is `anthropic`, `openai_compatible`, `none` or `custom`. A custom kind names a class as `"package.module:ClassName"`, and an `options` table under the section is passed to its constructor. `examples/custom_embedder.py` is a hashed bag-of-words embedder with no dependencies, and `examples/custom.toml` runs it with its own index and eval cache folders.
+
+### How
+
+`Embedder` declares `embed`, `query_embed` and the property `s_name`; `Generator` declares `generate` and `s_name`. `FastEmbedEmbedder`, `LlmClient` and the test doubles subclass them with no change in behaviour. `ComponentFactory.embedder` checks a fastembed model name against `TextEmbedding.list_supported_models()`, which works offline and lists 41 models in the installed fastembed 0.9.1, and rejects an unknown name with the command that prints the list. For a custom kind, and only then, it appends the working directory to the end of the import path, so installed modules keep priority; a test checks that the other kinds leave the path unchanged. It then imports the class with `importlib`, checks the base class with `issubclass`, and reports an import failure, a wrong base class or unusable options as `ValueError` naming the key. `ingest` saves the embedder's `s_name` as the index's model name, and `DenseIndex.load` refuses an index saved under another name with a message that says to run ingest again. `EvalIndexStore` stores the same name in `meta.json`, so an eval cache from another embedder is rebuilt. A generator of any kind that fails during a query prints a note with the error's type and message and shows the extractive answer. That replaced the earlier behaviour, in which API errors propagated and stopped the query. The note shows the library's own error text without filtering it, so don't paste it into a public issue.
+
+### Why
+
+The base classes state what a replacement must provide, and the name check stops a query from comparing vectors of two different models. Checking the fastembed name against the list fails fast with a clear message. `DenseIndex` and `Answerer` still accept any object with the right methods, so nothing that worked before breaks.
+
+### Trade-off or status
+
+Built. Measured with `examples/custom.toml` on the included corpus: ingest embedded 1,741 chunks in 0.18 seconds without fastembed, and "What is a tokamak?" got a best dense score of 0.446, so the shipped threshold of 0.55 reports it as not found. A custom class is ordinary Python run inside the process, so a config should only name code you trust.
+
+## D26 OpenAI-compatible client
+
+### Decision
+
+Add a generator kind for servers that accept the commonly used chat-completions request format, written with `urllib` from the standard library.
+
+### What it does
+
+`OpenAiCompatibleClient.generate` posts the model name, a system and a user message, and `max_tokens` (500) as JSON to `<base_url>/chat/completions`, and returns the text of the first choice. `base_url` and `model` come from the config. If `api_key_env` names an environment variable that is set, its value is sent as a bearer token. A server that needs no key needs no variable.
+
+### How
+
+The key is read from the environment while the request is built and isn't stored on the client; a test checks that it doesn't appear among the client's attributes. A connection failure or a reply without the expected fields raises `RuntimeError`, which the query turns into a note and the extractive answer. The constructor rejects a `base_url` that doesn't start with `http://` or `https://` and an empty model. The opener is injected through the constructor, so the tests use a fake opener and open no socket.
+
+### Why
+
+Many local model servers accept this request format, so one small client covers them without a new dependency.
+
+### Trade-off or status
+
+Built. It was not tested against a live server in this project; the tests check the request it builds and the replies it parses, using hand-made data.
+
+## D27 Simple eval kit
+
+### Decision
+
+Give template users four commands to build a question set and calibrate the threshold: `eval-init`, `eval-suggest`, `eval-check` and `calibrate`.
+
+### What it does
+
+`eval-init` writes `eval/my_questions.json` with one answerable and one unanswerable example and refuses to replace a file without `--force`. `eval-suggest` prints up to 30 candidate fact sentences, at most 5 per document, as `doc_id | sentence`. `eval-check` runs the question validator and prints the counts and the problems; `--lenient` skips the set-level rules. `calibrate` runs only the threshold sweep and prints the line to put in the config. `Loader` can also read `.md` files when `[corpus] extensions` names them.
+
+### How
+
+`QuestionStarter` writes the starter entries, each with a `comment` field that `QuestionLoader` ignores. `SentenceSuggester` keeps sentences of 60 to 200 characters that start with a capital, end with a full stop and contain a digit. It skips heading lines in the `== Title ==` and `# Title` styles and stops reading a document at a heading such as "References". It takes evenly spaced sentences per document and shares the limit out one sentence per document per round. `QuestionValidator.validate` gained `b_lenient`, which leaves out the set-level problems and keeps every per-question check. `Calibrator` uses the configured embedder, chunk size, overlap, fusion setting and `top_k`, sweeps thresholds in steps of 0.05 across the range of the measured scores, and names the thresholds with the fewest errors. It warns below 10 answerable or 3 unanswerable questions and refuses a file with per-question problems. `EvalKit` prints the output of all four commands.
+
+### Why
+
+Writing questions is the slow part of an eval, and a tool that lists checkable facts makes it faster without writing the questions for the user. The strict rules suit the included 31-question set but would block someone starting with 5 questions, so the lenient mode lets a small set through while still catching a phrase that isn't in its document. Reading `.md` is opt-in because the included corpus folder holds `SOURCES.md`, which would otherwise be loaded as a 21st document and change every result.
+
+### Trade-off or status
+
+Built. Each command has tests on tiny inputs. The suggestions favour sentences with numbers, so questions written from them lean toward dates and figures.
+
+## D28 Per-model threshold and calibration
+
+### Decision
+
+Treat `[gate] threshold` as a property of the configured embedding model and have users calibrate it with `calibrate` after a model change.
+
+### What it does
+
+The query uses the single threshold in `[gate]`. `calibrate` prints the sweep table for the configured embedder and the config line for the lowest of the thresholds with the fewest errors. It never edits the config.
+
+### How
+
+`calibrate` reuses `Evaluator.best_dense` and `ThresholdSweeper`, the same rule as the answer gate (D19). Its eval cache records the embedder's name in `meta.json` and is rebuilt when the name changes.
+
+### Why
+
+Cosine scores from different models sit in different ranges, so a threshold calibrated for one model means little for another. Measured on the included questions at chunk size 500: with `BAAI/bge-small-en-v1.5` the lowest error count is 3, at 0.55 and 0.60 (D23). With the example hashed bag-of-words embedder the sweep runs from 0.20 to 0.70, and the lowest error count is 6, at 0.20, where all 6 unanswerable questions are accepted. That embedder can't separate the two groups, and the table shows it.
+
+### Trade-off or status
+
+Built. A calibrated value is tuned on the questions it's measured on and will look better there than on new questions. A user who changes the model and skips calibration keeps a threshold from the old model, and nothing in the tool detects that.
