@@ -170,7 +170,7 @@ Merge the BM25 and dense rankings with reciprocal rank fusion (RRF), k = 60, tak
 
 ### How
 
-`RankFuser.fuse` adds 1 / (k + rank) for every ranking a chunk appears in, with 1-based ranks. If a chunk appears twice in one ranking, it counts once at its best rank. The sort is stable and the BM25 list is passed first, so equal fused scores keep first-appearance order with BM25 ahead. `HybridRetriever.score_table` records each retriever's own score per chunk key.
+`RankFuser.fuse` adds weight / (k + rank) for every ranking a chunk appears in, with 1-based ranks. Both weights default to 1.0 (D22). If a chunk appears twice in one ranking, it counts once at its best rank. The sort is stable and the BM25 list is passed first, so equal fused scores keep first-appearance order with BM25 ahead. `HybridRetriever.score_table` records each retriever's own score per chunk key.
 
 ### Why
 
@@ -178,13 +178,13 @@ RRF uses only ranks, so it can combine BM25 scores (unbounded) and cosine scores
 
 ### Trade-off or status
 
-A chunk outside a retriever's 20 candidates has `None` for that score, which means "not retrieved", not "score 0". Built and merged.
+A chunk outside a retriever's 20 candidates has `None` for that score, which means "not retrieved", not "score 0". Built. A grid of 12 fusion settings was measured later and the defaults of k = 60 and equal weights were kept (D22). With those defaults and 20 candidates per list, a chunk found by both retrievers always outranks a chunk found by one, which can push a dense-only first hit down the list.
 
 ## D09 Answerer gate
 
 ### Decision
 
-Count a question as found when the highest non-None dense score among the returned hits is at least the threshold. The default threshold is 0.5, and it's a placeholder.
+Count a question as found when the highest non-None dense score among the returned hits is at least the threshold. The default threshold is 0.55, chosen from the eval's sweep (D23). It was 0.5 until then.
 
 ### What it does
 
@@ -196,11 +196,11 @@ Below the threshold, `Answerer.answer` returns "Not found in the corpus." with n
 
 ### Why
 
-Cosine scores have a fixed range and mean the same thing from query to query, while fused scores depend only on rank (D08). Measured on the unanswerable query "Who won the 1998 football World Cup?" with the default top-k of 5: the top fused hit has dense 0.502, the best dense score among the five hits is 0.528, so 0.5 accepts it and 0.6 rejects it. The default wasn't raised on the strength of this one example, because a single unanswerable question says nothing about how many answerable questions a higher threshold would wrongly reject.
+Cosine scores have a fixed range and mean the same thing from query to query, while fused scores depend only on rank (D08). Measured on the unanswerable query "Who won the 1998 football World Cup?" with the default top-k of 5: the top fused hit has dense 0.502, the best dense score among the five hits is 0.528, so 0.5 accepts it and 0.6 rejects it. The default wasn't raised at the time on the strength of this one example, because a single unanswerable question says nothing about how many answerable questions a higher threshold would wrongly reject.
 
 ### Trade-off or status
 
-The eval's threshold sweep counts both kinds of error at each threshold (D19). The default stays at 0.5, and the choice of a new value is deferred there. Because the gate reads the best score among the returned hits, a larger `--top-k` can turn "not found" into "found". The gate is built and merged.
+The eval's threshold sweep counts both kinds of error at each threshold (D19), and the default was set to 0.55 from it (D23). With that default the World Cup question above is reported as not found. Because the gate reads the best score among the returned hits, a larger `--top-k` can turn "not found" into "found". The gate is built.
 
 ## D10 Opt-in generation
 
@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 202 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 230 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -422,13 +422,15 @@ Built. Measured results (hit@5, MRR):
 | 500 | 16/25, 0.528 | 21/25, 0.688 | 19/25, 0.587 |
 | 1000 | 19/25, 0.656 | 21/25, 0.721 | 22/25, 0.735 |
 
+With the current fusion defaults (k = 60, both weights 1.0), hybrid does not beat dense at size 500: it finds 19 of 25 answers in its top 5 against 21 for dense, and its first rank is better on 2 questions and worse on 7. At size 1000 hybrid is ahead by one question (22 against 21, first rank better on 6 and worse on 3), which is inside the noise. On this question set dense alone is as good as hybrid, and the fusion grid in D22 didn't change that.
+
 Hybrid at size 1000 has the better first rank on 9 questions, hybrid at size 500 on 4, and 12 are ties. At size 500, BM25 finds 6 of the 14 low-overlap questions in its top 5 and 10 of the 11 high-overlap ones. The default chunk size stays at 500; the eval changes no default.
 
 ## D19 Gate sweep
 
 ### Decision
 
-Sweep the gate threshold over the eval questions and report both kinds of error. Leave the default threshold at 0.5.
+Sweep the gate threshold over the eval questions and report both kinds of error. The sweep itself changes no default; the choice made from it is in D23.
 
 ### What it does
 
@@ -456,7 +458,7 @@ Built. The measured rows are (answerable rejected, unanswerable accepted):
 
 At both sizes the total error count is lowest at 0.55 and 0.60, with 3 errors. The sweep shows that the two groups overlap: at size 500 the best dense score runs from 0.648 to 0.890 for answerable questions and from 0.489 to 0.733 for unanswerable ones, so no threshold separates them on this set.
 
-The sweep can't show how a threshold performs on new questions, because a value picked from Table 3 is tuned on the questions it is measured on. It covers top-k 5 only, and the gate's result depends on top-k (D09). With 6 unanswerable questions, one question is a sixth of that group. For these reasons the default stays at 0.5 and the choice of a new value is deferred.
+The sweep can't show how a threshold performs on new questions, because a value picked from Table 3 is tuned on the questions it is measured on. It covers top-k 5 only, and the gate's result depends on top-k (D09). With 6 unanswerable questions, one question is a sixth of that group. The default was later set to 0.55 with these limits in mind (D23).
 
 ## D20 Eval index cache
 
@@ -501,3 +503,76 @@ Validating first means a broken question set stops the run before any ranking. `
 ### Trade-off or status
 
 Built. `--brief` shortens only the hit list; the extractive answer below it still prints the full chunk texts.
+
+## D22 Fusion tuning
+
+### Decision
+
+Give each ranking a weight in the fusion, measure a grid of 12 fusion settings on the eval, and keep the defaults of k = 60 with both weights at 1.0.
+
+### What it does
+
+`RankFuser.fuse` accepts one weight per ranking, and `HybridRetriever` takes `f_bm25_weight` and `f_dense_weight`. `mini-rag eval --fusion-grid` evaluates hybrid under every grid setting and writes `eval/fusion_grid.md`.
+
+### How
+
+A chunk's fused score is the sum of weight / (k + rank) over the rankings that contain it. `RankFuser.fuse` raises `ValueError` when the number of weights differs from the number of rankings or a weight is negative. Tests check that weights of 1.0, given or left out, produce the earlier scores bit for bit. `FusionGrid` crosses k in (5, 10, 20, 60) with a BM25 weight in (1.0, 0.5, 0.25) at a dense weight of 1.0. `Evaluator` ranks BM25 and dense once per chunk size and hybrid once per `FusionSetting`. `FusionGridWriter` writes one row per setting with hit@1, hit@3, hit@5, MRR, the count of questions where hybrid's first rank is better, worse or the same as dense alone, and the number of unanswerable questions accepted at threshold 0.60. The tables in `eval/results.md` always use the default setting, and the grid run reproduced that file exactly apart from its date line. A test with a counting embedder shows that a grid run on a cached index makes no embed call.
+
+### Why
+
+A review raised this hypothesis: at k = 60 with 20 candidates per list, a chunk found by both retrievers always outranks a chunk found by one, so a dense-only first hit can be pushed down. The arithmetic agrees, since a chunk in both lists scores at least 2/80 = 0.025 and a chunk in one list at most 1/61, about 0.0164. The trace of q21 at size 500 with the defaults confirms it on real data:
+
+| Hybrid rank | Chunk | Dense rank | BM25 rank | Fused score | Relevant |
+|---|---|---|---|---|---|
+| 1 | `stellarator#12` | 4 | 1 | 0.03202 | no |
+| 2 | `stellarator#42` | 6 | 2 | 0.03128 | no |
+| 3 | `tokamak#77` | 18 | 4 | 0.02845 | no |
+| 4 | `stellarator#84` | 7 | 17 | 0.02791 | no |
+| 5 | `stellarator#90` | 15 | 11 | 0.02742 | no |
+| 6 | `stellarator#0` | 1 | not in the top 20 | 0.01639 | yes |
+
+The relevant chunk is first in the dense ranking and ends up sixth, behind five chunks that both retrievers returned. A smaller k or a lower BM25 weight could have reduced that effect, so both were measured.
+
+### Trade-off or status
+
+Built. The defaults were kept. No grid setting beat the default by more than 2 questions on hit@5 at both sizes, and the grid is tuned on the 25 questions it is measured on, so a gain of 2 questions or fewer is noise. The measured results:
+
+- Lowering the BM25 weight makes hybrid converge toward dense. At size 500 the ties with dense on first rank rise from 16 at the default to 22 at k = 5 with a BM25 weight of 0.25.
+- At size 500 the best settings (k = 5 or k = 10 with a BM25 weight of 0.25) reach 21/25 on hit@5, which only matches dense alone. The default has 19/25.
+- At size 1000 the best settings reach 23/25, one question more than the default's 22/25.
+- Fusion settings don't change the gate. Every setting accepts 3 of the 6 unanswerable questions at threshold 0.60, at both sizes.
+
+On this question set dense alone is as good as hybrid. That may not hold for other corpora or for keyword-heavy questions, where BM25 has more to add.
+
+## D23 Threshold decision
+
+### Decision
+
+Set the default gate threshold to 0.55.
+
+### What it does
+
+`Answerer` and the `--threshold` option of `query` default to 0.55 instead of 0.5. Nothing else changed.
+
+### How
+
+The value comes from Table 3 and Table 4 of `eval/results.md` and from the best dense score of each unanswerable question at size 500, read from the cached index with the default fusion settings:
+
+| Question | Topic | Best dense score |
+|---|---|---|
+| q26 | on_topic | 0.731 |
+| q27 | on_topic | 0.656 |
+| q28 | on_topic | 0.733 |
+| q29 | off_topic | 0.489 |
+| q30 | off_topic | 0.524 |
+| q31 | off_topic | 0.528 |
+
+### Why
+
+Thresholds 0.55 and 0.60 tie at 3 errors at both chunk sizes, against 5 errors (size 500) and 6 (size 1000) at 0.5. The lowest best dense score of an answerable question is 0.648 at size 500 and 0.614 at size 1000. That leaves 0.55 a margin of 0.098 and 0.064, against 0.048 and 0.014 for 0.60. A wrongly rejected answer is worse than a wrongly accepted one, so the value with the larger margin was chosen. At size 500 the old default of 0.5 accepted the off-topic questions q30 (0.524) and q31 (0.528), and 0.55 rejects both.
+
+### Trade-off or status
+
+Built. The margin above the highest off-topic score is only 0.022, and the value is tuned on the same questions it is measured on, so it will look better here than on new questions.
+
+The three remaining errors are the on-topic unanswerable questions, with scores of 0.656 to 0.733. They overlap the answerable range, and no threshold on the dense score can separate them, because the score measures topical closeness, not whether the answer is present. Possible future work is a reranker, or a generation step that can decline to answer. Neither is built.

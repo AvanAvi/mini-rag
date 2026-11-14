@@ -203,6 +203,11 @@ class TestCli:
     assert "a00: source_doc 'doc_99' is not a loaded document" in l_lines[1]
     assert not (tmp_path / "results.md").exists()
 
+  def test_query_threshold_default_is_0_55(self) -> None:
+    """The query parser's --threshold option defaults to 0.55."""
+    obj_args = Cli().build_parser().parse_args(["query", "any question"])
+    assert obj_args.f_threshold == 0.55
+
   def test_eval_bad_sizes_returns_2(self, tmp_path: Path) -> None:
     """A --sizes value that is not a list of whole numbers is a usage error."""
     assert self.make_eval_cli().run(["eval", "--sizes", "500,big"]) == 2

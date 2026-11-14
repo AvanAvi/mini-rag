@@ -85,12 +85,12 @@ Each hit prints its rank, its marker, its dense, BM25 and fused scores, and the 
 5. [chernobyl_disaster#6]  dense 0.520  bm25 -  fused 0.0161
 ```
 
-The output ends with the answer and a line such as `found: yes, written by a model: no`.
+The output ends with the answer and a line such as `found: no, written by a model: no`.
 
 Query options:
 
 - `--top-k N` sets how many fused hits to return (default 5).
-- `--threshold F` sets the dense score the best hit must reach to count as found (default 0.5, allowed range -1.0 to 1.0). The question above is answered at `--threshold 0.5` and reported as not found at `--threshold 0.6`, which is the right result because no article in the corpus mentions the World Cup.
+- `--threshold F` sets the dense score the best hit must reach to count as found (default 0.55, allowed range -1.0 to 1.0). The best dense score among the hits above is 0.528, so the default reports the question as not found. That's the right result, because no article in the corpus mentions the World Cup. With `--threshold 0.5` the same question is answered.
 - `--generate` asks a language model to write the answer from the retrieved chunks.
 - `--brief` cuts each hit's text to 160 characters and adds `...` when it was cut.
 
@@ -110,13 +110,15 @@ Eval options:
 - `--build-only` embeds the corpus for each size, saves the result under `.cache/eval` and stops there. It loads no questions and writes no report. A later run with the same corpus and settings loads that cache instead of embedding again.
 - `--rebuild` ignores the cache and embeds again.
 - `--out PATH` changes where the report is written.
+- `--fusion-grid` also evaluates hybrid search under 12 fusion settings (k of 5, 10, 20 or 60, each with a BM25 weight of 1.0, 0.5 or 0.25) and writes `fusion_grid.md` next to the report. It first prints whether each index was loaded from the cache or built. The last grid run is in [eval/fusion_grid.md](eval/fusion_grid.md).
 
 Embedding is the slow part. In one run on a CPU, `--build-only` took 160 seconds for size 500 (1,741 chunks) and 154 seconds for size 1000 (780 chunks).
 
 ## Known limits
 
-- The default threshold of 0.5 is unchanged, and the unanswerable question above passes it. The sweep in [eval/results.md](eval/results.md) counts the errors at each threshold from 0.40 to 0.80.
-- A threshold chosen from the sweep is tuned on the questions it is measured on, so it will look better there than on new questions.
+- The default threshold of 0.55 was picked from the sweep in [eval/results.md](eval/results.md), which counts the errors at each threshold from 0.40 to 0.80. It is tuned on the questions it is measured on, so it will look better there than on new questions. At chunk size 500 it sits only 0.022 above the highest off-topic score in the set.
+- The gate can't reject an on-topic question the corpus doesn't answer. The three on-topic unanswerable questions in the eval set have best dense scores of 0.656 to 0.733 at chunk size 500, inside the answerable range of 0.648 to 0.890, and all three are accepted. The dense score measures how close the topic is, not whether the answer is present, so no threshold on it separates them.
+- On this question set hybrid search is no better than dense search alone. With the default fusion settings (k = 60, both weights 1.0), hybrid finds 19 of 25 answers in its top 5 at chunk size 500 against 21 for dense, and 22 against 21 at size 1000. None of the 12 settings in [eval/fusion_grid.md](eval/fusion_grid.md) improved on the defaults by more than the noise, so they are unchanged. This may not hold for other corpora or for questions that depend on exact keywords.
 - The sweep covers top-k 5 only.
 - The gate reads the best dense score among the returned hits, so the result depends on `--top-k`. A larger top-k can bring in a chunk with a higher dense score.
 - Wikipedia's plain-text extracts drop tables, and formulas lose their layout. In `data/corpus/nuclear_fusion.txt`, "in the following table." is followed by an empty line, and `data/corpus/plasma_physics.txt` shows the ionisation fraction as `α=nini+nn`.

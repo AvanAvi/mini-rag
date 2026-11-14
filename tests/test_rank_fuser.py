@@ -86,3 +86,46 @@ class TestRankFuser:
     assert self.names(l_fused) == ["A", "B", "C"]
     # C keeps rank 4 (1/64, not 1/63): the duplicate A still occupies position 3
     assert [f_score for obj_chunk, f_score in l_fused] == pytest.approx([1 / 61, 1 / 62, 1 / 64])
+
+  def test_weighted_scores_hand_computed(self) -> None:
+    """Each ranking adds its weight / (i_k + rank); checked against hand arithmetic."""
+    # i_k = 1, bm25 = [A, B, C] with weight 0.5, dense = [B, D, A] with weight 1.0:
+    #   A = 0.5/2 + 1/4 = 0.5
+    #   B = 0.5/3 + 1/2 = 0.6666...
+    #   C = 0.5/4       = 0.125
+    #   D = 1/3         = 0.3333...
+    # order: B, A, D, C
+    l_fused = RankFuser().fuse([self.hits(["A", "B", "C"]), self.hits(["B", "D", "A"])], 1, [0.5, 1.0])
+    assert self.names(l_fused) == ["B", "A", "D", "C"]
+    assert [f_score for obj_chunk, f_score in l_fused] == pytest.approx([0.5 / 3 + 1 / 2, 0.5, 1 / 3, 0.125])
+
+  def test_weights_of_one_equal_unweighted_exactly(self) -> None:
+    """Weights of 1.0, given or left out, give the unweighted scores bit for bit and the same order."""
+    l_rankings = [self.hits(["A", "B", "C"]), self.hits(["B", "D", "A"])]
+    l_plain = RankFuser().fuse(l_rankings, 60)
+    l_weighted = RankFuser().fuse(l_rankings, 60, [1.0, 1.0])
+    # the unweighted formula, summed in ranking order: 1.0 / (i_k + rank)
+    d_expected = {"A": 0.0 + 1.0 / 61 + 1.0 / 63, "B": 0.0 + 1.0 / 62 + 1.0 / 61, "C": 0.0 + 1.0 / 63, "D": 0.0 + 1.0 / 62}
+    assert self.names(l_plain) == self.names(l_weighted) == ["B", "A", "D", "C"]
+    for l_fused in (l_plain, l_weighted):
+      # exact comparison on purpose: the default must not change any score
+      assert {obj_chunk.s_doc_id: f_score for obj_chunk, f_score in l_fused} == d_expected
+
+  def test_zero_weight_keeps_the_other_lists_order(self) -> None:
+    """With weight 0 on one list, the chunks of the other list keep that list's order."""
+    l_rankings = [self.hits(["A", "B", "C"]), self.hits(["B", "D", "A"])]
+    l_fused = RankFuser().fuse(l_rankings, 60, [0.0, 1.0])
+    assert [s_name for s_name in self.names(l_fused) if s_name in ("B", "D", "A")] == ["B", "D", "A"]
+    assert [f_score for obj_chunk, f_score in l_fused] == pytest.approx([1 / 61, 1 / 62, 1 / 63, 0.0])
+    l_fused = RankFuser().fuse(l_rankings, 60, [1.0, 0.0])
+    assert [s_name for s_name in self.names(l_fused) if s_name in ("A", "B", "C")] == ["A", "B", "C"]
+
+  def test_invalid_weights_raise(self) -> None:
+    """A weight count that differs from the ranking count, or a negative weight, raises ValueError."""
+    l_rankings = [self.hits(["A"]), self.hits(["B"])]
+    with pytest.raises(ValueError, match="one weight per ranking"):
+      RankFuser().fuse(l_rankings, 60, [1.0])
+    with pytest.raises(ValueError, match="one weight per ranking"):
+      RankFuser().fuse(l_rankings, 60, [1.0, 1.0, 1.0])
+    with pytest.raises(ValueError, match="negative"):
+      RankFuser().fuse(l_rankings, 60, [1.0, -0.5])

@@ -54,7 +54,7 @@ Finally, `Cli.ingest` prints the counts, the settings, the index folder and the 
 2. `Bm25Index.build()` rebuilds the keyword index from the loaded chunks. It isn't saved separately.
 3. `Answerer(f_threshold)` is created before searching, so an invalid `--threshold` fails early.
 4. `HybridRetriever.search(question, top_k)` asks each index for `max(20, top_k)` candidates: `Bm25Index.search()` tokenises the question with `Tokenizer` and keeps hits with a positive score, and `DenseIndex.search()` embeds the question with `query_embed()` and ranks every chunk by cosine score.
-5. `RankFuser.fuse()` merges the two lists with reciprocal rank fusion. `HybridRetriever` then attaches each chunk's own dense and BM25 score and keeps the first `top_k` hits as `HybridHit` objects.
+5. `RankFuser.fuse()` merges the two lists with weighted reciprocal rank fusion. Each list has a weight, `f_bm25_weight` and `f_dense_weight` on `HybridRetriever`, and a chunk's fused score is the sum of weight / (60 + rank) over the lists that contain it. Both weights default to 1.0, which gives plain reciprocal rank fusion. `HybridRetriever` then attaches each chunk's own dense and BM25 score and keeps the first `top_k` hits as `HybridHit` objects.
 6. `Cli.print_hit()` prints every hit with its marker and its three scores.
 7. `Cli.answer()` picks the answerer. With `--generate`, `Cli.make_client()` returns an `LlmClient` if `ANTHROPIC_API_KEY` is set; otherwise, or if the `llm` extra is missing, the extractive answerer is used and a note is printed.
 8. `Answerer.answer()` applies the gate in `is_found()`. If the best dense score among the hits is below the threshold, the result is "Not found in the corpus." Otherwise `format_sources()` builds the extractive answer, or `LlmClient.generate()` writes one from the same sources.
@@ -67,7 +67,7 @@ Finally, `Cli.ingest` prints the counts, the settings, the index folder and the 
 1. `QuestionLoader.load()` reads `eval/questions.json` and returns one `Question` per entry. A missing file, a malformed entry or a duplicate id prints an error and exits with code 2.
 2. `Loader.load()` reads the corpus, and `QuestionValidator.validate()` checks every question against it. If there are problems, the command prints up to 10 of them and exits with code 2.
 3. `Evaluator.run()` asks `EvalIndexStore.get_indexes()` for the indexes of each chunk size. The store loads the dense index from `.cache/eval/size_<size>_overlap_<overlap>` when `meta.json` matches the size, overlap, model name and corpus fingerprint. Otherwise it chunks, embeds and saves. It rebuilds the BM25 index from the chunks every time.
-4. For each size, `Evaluator.run_size()` wraps the indexes in `Bm25Method`, `DenseMethod` and `HybridMethod`. All three implement `RetrievalMethod.rank()`.
+4. For each size, `Evaluator.run_size()` wraps the indexes in `Bm25Method`, `DenseMethod` and one `HybridMethod` per `FusionSetting`. All three implement `RetrievalMethod.rank()`. A plain run has a single fusion setting, the defaults of `HybridRetriever`.
 5. Each method ranks every answerable question to depth 10. `Evaluator.outcome()` calls `RelevanceJudge.is_relevant()` on each returned chunk, which is true when the chunk contains the question's `must_contain` phrase, and records a `QuestionOutcome`.
 6. `HybridMethod.hits()` then returns the top 5 hybrid hits for every question, answerable or not, and `Evaluator.best_dense()` keeps the highest dense score among them.
 7. `ThresholdSweeper.sweep()` turns those best scores into one `SweepRow` per threshold from 0.40 to 0.80.
@@ -75,13 +75,15 @@ Finally, `Cli.ingest` prints the counts, the settings, the index folder and the 
 
 With `--build-only`, `Cli.build_only` runs `Evaluator.prepare()` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds. It loads no questions and writes no report.
 
+With `--fusion-grid`, `FusionGrid.settings()` supplies 12 fusion settings: k of 5, 10, 20 or 60, each with a BM25 weight of 1.0, 0.5 or 0.25 and a dense weight of 1.0. `Cli.eval` prints whether each index was loaded or built. `Evaluator.run_fusion()` then evaluates hybrid once per setting and stores a `FusionResult` in the `SizeResult`, while BM25 and dense are still ranked once per size. The tables in `eval/results.md` keep using the default setting, and `FusionGridWriter.write()` saves one row per setting to `fusion_grid.md` in the report's folder.
+
 ### How the sweep reads the dense score
 
 The sweep uses the gate's own rule. `Answerer.is_found()` takes the highest non-None dense score among the hits and compares it with the threshold. `Evaluator.best_dense()` stores that same maximum for the top 5 hybrid hits of each question, and `ThresholdSweeper.is_found()` counts a question as found when the stored score is at least the threshold. A test runs both on the same hits and checks that they agree. The score belongs to whichever of the five hits has the highest cosine, which need not be the hit ranked first. The design and the measured results are in [decisions.md, D15](decisions.md#d15-eval-design) and [D19](decisions.md#d19-gate-sweep).
 
 ## Data types
 
-All are frozen dataclasses except `EvalResult`.
+All are frozen dataclasses except `EvalResult` and the `SizeResult` objects it holds.
 
 | Type | Fields | Made by | Meaning |
 |---|---|---|---|
@@ -93,7 +95,9 @@ All are frozen dataclasses except `EvalResult`.
 | `Question` | `s_id: str`, `s_text: str`, `b_answerable: bool`, `s_source_doc: str`, `s_must_contain: str`, `t_absent_terms: tuple[str, ...]`, `s_topic: str` | `QuestionLoader` | One eval question. Answerable questions fill `s_source_doc` and `s_must_contain`; unanswerable ones fill `t_absent_terms` and `s_topic`. Unused fields are `""` or an empty tuple. |
 | `QuestionOutcome` | `s_id: str`, `i_first_rank: int \| None`, `i_total_relevant: int`, `d_found_at_k: dict[int, int]` | `Evaluator` | How one method did on one answerable question. `i_first_rank` is 1-based and `None` when no relevant chunk was in the top 10. `d_found_at_k` counts the relevant chunks in the top 1, 3 and 5. |
 | `SweepRow` | `f_threshold: float`, `i_answerable_rejected: int`, `i_answerable_total: int`, `i_unanswerable_accepted: int`, `i_unanswerable_total: int` | `ThresholdSweeper` | The two kinds of gate error at one threshold. |
-| `EvalResult` | `s_corpus_fingerprint: str`, `s_model_name: str`, `i_overlap: int`, `i_depth: int`, `i_gate_top_k: int`, `l_size_results: list[SizeResult]` | `Evaluator` | One eval run. Each `SizeResult` holds a chunk size's chunk count, the outcomes per method, the best dense score per question and the sweep rows. |
+| `EvalResult` | `s_corpus_fingerprint: str`, `s_model_name: str`, `i_overlap: int`, `i_depth: int`, `i_gate_top_k: int`, `l_size_results: list[SizeResult]` | `Evaluator` | One eval run. Each `SizeResult` holds a chunk size's chunk count, the outcomes per method, the best dense score per question, the sweep rows and one `FusionResult` per fusion setting. |
+| `FusionSetting` | `i_k: int`, `f_bm25_weight: float`, `f_dense_weight: float` | `FusionGrid`, `FusionSetting.default()` | One combination of fusion parameters. `s_label` gives its report name, such as `k=60 w=1.0/1.0`. |
+| `FusionResult` | `obj_setting: FusionSetting`, `l_outcomes: list[QuestionOutcome]`, `d_best_dense: dict[str, float \| None]`, `l_sweep_rows: list[SweepRow]` | `Evaluator` | Hybrid's outcomes, gate scores and sweep under one fusion setting at one chunk size. |
 
 ## Scores
 
@@ -101,7 +105,7 @@ All are frozen dataclasses except `EvalResult`.
 |---|---|---|---|
 | BM25 | 0 upwards (non-positive hits are dropped) | Keyword overlap, weighted by how rare each word is and adjusted for chunk length. | Other BM25 scores for the same question only. The scale changes with the question's words. |
 | Dense cosine | -1 to 1 | Similarity in meaning between the question vector and the chunk vector. | Other cosine scores from the same model. The range is fixed, so one threshold can be applied to every question, which is why the answer gate uses it. |
-| Fused RRF | above 0, at most 2/61 (about 0.0328) | The sum of 1 / (60 + rank) over the retrievers that returned the chunk. Only the ranks matter. | Other fused scores for the same question only. It can't be compared with BM25 or cosine scores. |
+| Fused RRF | above 0, at most 2/61 (about 0.0328) | The sum of weight / (60 + rank) over the retrievers that returned the chunk, with both weights at their default of 1.0. Only the ranks matter. | Other fused scores for the same question only. It can't be compared with BM25 or cosine scores. |
 
 ## Where things live
 
@@ -118,13 +122,14 @@ All paths are relative to the project root.
 | `.cache/pytest-tmp/` | Temporary folders made by tests | no |
 | `eval/questions.json` | The 25 answerable and 6 unanswerable eval questions | yes |
 | `eval/results.md` | The report of the last eval run, written by `eval` | yes |
+| `eval/fusion_grid.md` | One table per chunk size with a row per fusion setting, written by `eval --fusion-grid` | yes |
 | `scripts/env.ps1` | Sets `FASTEMBED_CACHE_PATH` and `HF_HOME` for the session | yes |
 | `src/mini_rag/` | The package, one class per file | yes |
 | `tests/` | The test suite and its fakes | yes |
 
 ## Worked example
 
-The question "Who won the 1998 football World Cup?" has no answer in the corpus, since none of the 20 articles mentions the World Cup. Running it with the defaults (`--top-k 5`, `--threshold 0.5`) gives:
+The question "Who won the 1998 football World Cup?" has no answer in the corpus, since none of the 20 articles mentions the World Cup. Running it with the defaults (`--top-k 5`, `--threshold 0.55`) gives:
 
 ```text
 1. [nuclear_safety_and_security#82]  dense 0.502  bm25 14.754  fused 0.0313
@@ -139,6 +144,6 @@ Here's how to read it.
 - **BM25.** The tokens are `who`, `won`, `the`, `1998`, `football`, `world` and `cup`. Hit 1 contains "who", "1998" and "world" (from a passage on a 1998 coolant loss at a French reactor). Hit 4 contains "won" and "world". Both score high on words that have nothing to do with football.
 - **Dense.** Hit 3 has the highest cosine score in the whole index, 0.528, but BM25 didn't return it, so its BM25 column shows `-`.
 - **Fusion.** Hit 3 is first in the dense ranking alone, so its fused score is 1/61, about 0.0164. Hits 4 and 5 are each second in one ranking, so both get 1/62, about 0.0161. The tie keeps BM25's hit first, which is why `tokamak#94` comes before `chernobyl_disaster#6`. Hit 1 ranks first because both retrievers returned it.
-- **Gate.** The top fused hit has a dense score of 0.502, but the gate reads the best dense score among all five hits, 0.528. That's at least 0.5, so the answer is reported as found and the five chunk texts are printed as the extractive answer. That's a wrong acceptance.
+- **Gate.** The top fused hit has a dense score of 0.502, but the gate reads the best dense score among all five hits, 0.528. That's below 0.55, so the output is "Not found in the corpus." with `found: no`, which is correct.
 
-With `--threshold 0.6` the same hits come back, 0.528 is below the threshold, and the output is "Not found in the corpus." with `found: no`. One unanswerable question doesn't show how many answerable questions 0.6 would reject. The threshold sweep in `eval/results.md` counts both kinds of error at each threshold, and the default stays at 0.5 (see [decisions.md, D19](decisions.md#d19-gate-sweep)).
+With `--threshold 0.5` the same hits come back, 0.528 is at least the threshold, and the five chunk texts are printed as the extractive answer. That's a wrong acceptance, and 0.5 was the default until the threshold sweep in `eval/results.md` counted both kinds of error at each threshold (see [decisions.md, D23](decisions.md#d23-threshold-decision)).
