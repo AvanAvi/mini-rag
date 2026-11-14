@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 321 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 339 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -490,11 +490,11 @@ Replace the `eval` placeholder with the real command, add `--brief` to `query`, 
 
 ### What it does
 
-`eval` validates the questions, runs the evaluator, prints Table 1 and Table 3 and writes the report. `query --brief` cuts each hit's text to 160 characters and appends `...` only when it cut something. `query` on an index saved under another model name prints `error: <message>` and exits with code 2.
+`eval` validates the questions, runs the evaluator, prints Table 1 and Table 3 and writes the report. `query --brief` cuts each hit's text to 160 characters and appends `...` only when it cut something. `query` on an index saved under another model name prints `error: <message>` and exits with code 2. Every command and option has a short help text and a lowercase metavar, such as `--index-dir dir`, and `--help` shows each option's default.
 
 ### How
 
-The `eval` options are `--questions` (default `eval/questions.json`), `--corpus` (`data/corpus`), `--sizes` (`500,1000`), `--overlap` (100), `--gate-top-k` (5), `--cache-dir` (`.cache/eval`), `--out` (`eval/results.md`), `--rebuild` and `--build-only`. With `--build-only`, `Cli.build_only` calls `Evaluator.prepare` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds; it loads no questions and writes no report. If the validator finds problems, `Cli.fail_problems` prints up to 10 of them and the command exits with code 2. `FileNotFoundError` and `ValueError` become an error line with exit code 2. `Cli.query` now also catches the `ValueError` that `DenseIndex.load` raises for a model name mismatch or damaged files (D07). `Cli` passes its embedder to `EvalIndexStore`, so tests run the whole command with a fake embedder.
+The `eval` options are `--questions` (default `eval/questions.json`), `--corpus` (`data/corpus`), `--sizes` (`500,1000`), `--overlap` (100), `--gate-top-k` (5), `--cache-dir` (`.cache/eval`), `--out` (`eval/results.md`), `--rebuild` and `--build-only`. With `--build-only`, `Cli.build_only` calls `Evaluator.prepare` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds; it loads no questions and writes no report. If the validator finds problems, `Cli.fail_problems` prints up to 10 of them and the command exits with code 2. `FileNotFoundError` and `ValueError` become an error line with exit code 2. `Cli.query` now also catches the `ValueError` that `DenseIndex.load` raises for a model name mismatch or damaged files (D07). `Cli` passes its embedder to `EvalIndexStore`, so tests run the whole command with a fake embedder. `build_parser` gives the parser and every subparser `argparse.ArgumentDefaultsHelpFormatter`, which appends the default to each option's help text; option names, dest names and defaults didn't change. A test runs `--help` for every command through `Cli.run` and checks that no raw dest name such as `S_INDEX_DIR` appears.
 
 ### Why
 
@@ -611,7 +611,7 @@ Define abstract base classes for the embedding model and the answer-writing mode
 
 ### How
 
-`Embedder` declares `embed`, `query_embed` and the property `s_name`; `Generator` declares `generate` and `s_name`. `FastEmbedEmbedder`, `LlmClient` and the test doubles subclass them with no change in behaviour. `ComponentFactory.embedder` checks a fastembed model name against `TextEmbedding.list_supported_models()`, which works offline and lists 41 models in the installed fastembed 0.9.1, and rejects an unknown name with the command that prints the list. For a custom kind, and only then, it appends the working directory to the end of the import path, so installed modules keep priority; a test checks that the other kinds leave the path unchanged. It then imports the class with `importlib`, checks the base class with `issubclass`, and reports an import failure, a wrong base class or unusable options as `ValueError` naming the key. `ingest` saves the embedder's `s_name` as the index's model name, and `DenseIndex.load` refuses an index saved under another name with a message that says to run ingest again. `EvalIndexStore` stores the same name in `meta.json`, so an eval cache from another embedder is rebuilt. A generator of any kind that fails during a query prints a note with the error's type and message and shows the extractive answer. That replaced the earlier behaviour, in which API errors propagated and stopped the query. The note shows the library's own error text without filtering it, so don't paste it into a public issue.
+`Embedder` declares `embed`, `query_embed` and the property `s_name`; `Generator` declares `generate` and `s_name`. `FastEmbedEmbedder`, `LlmClient` and the test doubles subclass them with no change in behaviour. `ComponentFactory.embedder` checks a fastembed model name against `TextEmbedding.list_supported_models()`, which works offline and lists 41 models in the installed fastembed 0.9.1, and rejects an unknown name with the command that prints the list. For a custom kind, and only then, it appends the working directory to the end of the import path, so installed modules keep priority; a test checks that the other kinds leave the path unchanged. It then imports the class with `importlib`, checks the base class with `issubclass`, and reports an import failure, a wrong base class or unusable options as `ValueError` naming the key. `ingest` saves the embedder's `s_name` as the index's model name, and `DenseIndex.load` refuses an index saved under another name with a message that says to run ingest again. `FastEmbedEmbedder` loads its model on the first `embed` or `query_embed` call, not in its constructor, so reading `s_name` loads nothing and `query` compares the saved name before any fastembed model is loaded or downloaded. A test replaces fastembed's `TextEmbedding` with a recorder and checks that a refused query records no load. A custom embedder is still built before the check, so its constructor runs. `EvalIndexStore` stores the same name in `meta.json`, so an eval cache from another embedder is rebuilt. A generator of any kind that fails during a query prints a note with the error's type and message and shows the extractive answer. That replaced the earlier behaviour, in which API errors propagated and stopped the query. The note shows the library's own error text without filtering it, so don't paste it into a public issue.
 
 ### Why
 
@@ -619,7 +619,7 @@ The base classes state what a replacement must provide, and the name check stops
 
 ### Trade-off or status
 
-Built. Measured with `examples/custom.toml` on the included corpus: ingest embedded 1,741 chunks in 0.18 seconds without fastembed, and "What is a tokamak?" got a best dense score of 0.446, so the shipped threshold of 0.55 reports it as not found. A custom class is ordinary Python run inside the process, so a config should only name code you trust.
+Built. Measured with `examples/custom.toml` on the included corpus: ingest embedded 1,741 chunks in under a second without fastembed, and "What is a tokamak?" got a best dense score of 0.446, so the shipped threshold of 0.55 reports it as not found. A custom class is ordinary Python run inside the process, so a config should only name code you trust.
 
 ## D26 OpenAI-compatible client
 
@@ -686,3 +686,25 @@ Cosine scores from different models sit in different ranges, so a threshold cali
 ### Trade-off or status
 
 Built. A calibrated value is tuned on the questions it's measured on and will look better there than on new questions. A user who changes the model and skips calibration keeps a threshold from the old model, and nothing in the tool detects that.
+
+## D29 Fresh-clone test
+
+### Decision
+
+Test the project from a fresh clone, as a new user would meet it, and correct what that test found.
+
+### What it does
+
+The test cloned the repository from GitHub on Windows with a cold uv cache and no model cache, then ran the README and make-your-own steps. The numbers below were measured once on one machine and depend on the CPU and the network. All 20 corpus SHA-256 values matched, and no corpus file contained a carriage return. `uv sync` took 16.8 s and installed 36 packages. The test run gave 321 passed, 1 deselected. The first `ingest` took 172 s for 20 documents and 1,741 chunks; the model download was about 6 s of that, and the model folder was 64.1 MB. A query took about 4.5 s. `eval --build-only` took 322.9 s (156.1 s and 161.4 s per chunk size). `eval` took 11.0 s, and its report differed from the committed one only in the date line. `calibrate` took about 5 s. Swapping to `minishlab/potion-base-8M` (256 dimensions, 29.5 MB) worked, with the calibration result given in make-your-own.md. The OpenAI-compatible client was checked only against a local stand-in server written from the same assumptions as the client, not against a real server.
+
+### How
+
+These parts were not tested: a live Anthropic call, a real OpenAI-compatible server, uv installing Python itself, systems other than Windows, PowerShell 7, `--fusion-grid`, `--rebuild`, `--sizes`, Markdown corpus files and custom generators.
+
+### Why
+
+The project is also a template, so its documentation has to work for someone who has none of the local caches or history. A fresh clone is the closest stand-in for that user.
+
+### Trade-off or status
+
+The test found eight documentation discrepancies, now corrected in the README and make-your-own.md. It also found that `query` downloaded a newly configured model before it refused the old index. `FastEmbedEmbedder` now loads its model on first use, so the name check comes first (D25). The third finding was `--help` output that showed dest names such as `S_INDEX_DIR` and no option help. Every option now has help text and a lowercase metavar (D21). A single run on one machine says nothing about other systems.

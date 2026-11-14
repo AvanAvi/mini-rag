@@ -27,6 +27,10 @@ The licence of your texts is your responsibility. The included articles are CC B
 
 ## Swapping the embedding model
 
+The shipped threshold of 0.55 belongs to the default embedding model, `BAAI/bge-small-en-v1.5`. After any model change, run `calibrate` and set `[gate] threshold` before you trust "Not found". Measured once on the 31 included questions: with `minishlab/potion-base-8M` (256 dimensions, 29.5 MB), `calibrate` gave its lowest error count at 0.35, 0.40 and 0.45 and suggested 0.35 without a warning. The shipped 0.55 would have rejected 8 of the 25 answerable questions.
+
+`ingest` overwrites the index in the folder named in `[index] dir`, and `eval` and `calibrate` rebuild the caches in `[eval] cache_dir` when the embedder's name changes. To keep the default index and caches while you try another model, point both keys at new folders, as `examples/custom.toml` does.
+
 ### A fastembed model
 
 Set `[embedder] kind = "fastembed"` and `model` to a name from fastembed's list of supported models. The installed fastembed (0.9.1) lists 41 models. mini-rag checks the name against that list before loading anything and rejects an unknown name with a message that shows how to print the list:
@@ -54,14 +58,14 @@ uv run mini-rag --config examples/custom.toml ingest
 uv run mini-rag --config examples/custom.toml query "What is a tokamak?"
 ```
 
-On the included corpus this ingest took 0.18 seconds for 1,741 chunks. The example matches only texts that share words, so it's a starting point to copy, not a useful model. For "What is a tokamak?" its best dense score is 0.446, below the shipped threshold of 0.55, so the answer is "Not found in the corpus.". That threshold was calibrated for `BAAI/bge-small-en-v1.5`, not for this embedder; see "How to read the calibration table" below.
+On the included corpus this ingest took under a second for 1,741 chunks. The example matches only texts that share words, so it's a starting point to copy, not a useful model. For "What is a tokamak?" its best dense score is 0.446, below the shipped threshold of 0.55, so the answer is "Not found in the corpus.". That threshold was calibrated for `BAAI/bge-small-en-v1.5`, not for this embedder; see "How to read the calibration table" below.
 
 ## Swapping the generator
 
 Generation only runs with `query --generate`, and only after the threshold check has passed. Without `--generate`, the answer is the retrieved chunk texts under their citation markers. `[generator] kind` picks the client:
 
-- `"anthropic"` uses the Anthropic API with the configured `model`. It needs the `llm` extra (`uv sync --extra llm`) and the `ANTHROPIC_API_KEY` variable set in the session.
-- `"openai_compatible"` posts to `<base_url>/chat/completions` with the model, the messages and `max_tokens` (500). Set `base_url`, such as `"http://localhost:8080/v1"` for a server on your own machine, and `model`. If the server needs a key, put the name of the environment variable that holds it in `api_key_env`. The key is read from that variable for each request and isn't stored. This client follows the commonly used chat-completions request format and was not tested against a live server in this project.
+- `"anthropic"` uses the Anthropic API with the configured `model`. It needs the `llm` extra (`uv sync --extra llm`) and the `ANTHROPIC_API_KEY` variable set in the session. The key check runs first: with the variable unset, `--generate` prints `note: ANTHROPIC_API_KEY is not set; showing the extractive answer` whether or not the extra is installed. With the variable set but the extra missing, it prints a note that the generator failed.
+- `"openai_compatible"` posts to `<base_url>/chat/completions` with the model, the messages and `max_tokens` (500). Set `base_url`, such as `"http://localhost:8080/v1"` for a server on your own machine, and `model`. If the server needs a key, put the name of the environment variable that holds it in `api_key_env`. The key is read from that variable for each request and isn't stored. If the variable named in `api_key_env` is unset, the request is sent without an `Authorization` header and no note is printed, which suits a local server that needs no key. This client follows the commonly used chat-completions request format and was not tested against a live server in this project.
 - `"none"` turns generation off. `--generate` then prints a note and shows the extractive answer.
 - `"custom"` imports a `Generator` subclass named in `class`, with keyword arguments from `[generator.options]`. The class needs an `s_name` property and `generate(s_system, s_user)`, which returns the reply text.
 
@@ -69,13 +73,13 @@ If the client fails, for example because the server can't be reached, the query 
 
 ## Re-run ingest after a model change
 
-The index stores the vectors of one embedding model, and vectors from two models can't be compared. `ingest` saves the embedder's `s_name` in `.cache/index/chunks.json`, and `query` refuses an index built with another embedder, with a message that ends in "run ingest again". Changes under `[chunking]` also need a new `ingest`, because the saved index holds the chunks. The eval caches record the embedder's name in `meta.json`, and `eval` and `calibrate` rebuild a cache by themselves when the name doesn't match.
+The index stores the vectors of one embedding model, and vectors from two models can't be compared. `ingest` saves the embedder's `s_name` in `.cache/index/chunks.json`, and `query` refuses an index built with another embedder, with a message that ends in "run ingest again". For a fastembed model the check runs before any model is loaded, so a refused query downloads nothing. A custom class is built before the check, so its constructor still runs. Changes under `[chunking]` also need a new `ingest`, because the saved index holds the chunks. The eval caches record the embedder's name in `meta.json`, and `eval` and `calibrate` rebuild a cache by themselves when the name doesn't match.
 
 ## Building your own eval in five steps
 
 The eval measures how often retrieval finds the right passage, and the calibration picks a threshold for your embedding model. Both need a question file.
 
-1. Create a starter file with `uv run mini-rag eval-init`. It writes `eval/my_questions.json` with one answerable and one unanswerable example, each explained in a `comment` field that the loader ignores. It won't replace an existing file unless you add `--force`.
+1. Create a starter file with `uv run mini-rag eval-init`. It writes `eval/my_questions.json` with one answerable and one unanswerable example, each explained in a `comment` field that the loader ignores. It won't replace an existing file unless you add `--force`. The two entries are placeholders, such as the `source_doc` value `your_document_name`, and `eval-check` fails on the file until you replace them.
 2. Print candidate facts with `uv run mini-rag eval-suggest`. It lists up to 30 sentences (change it with `--limit`), at most 5 from each document, as `doc_id | sentence`. A candidate holds a number or a date and is 60 to 200 characters long. Headings are skipped, and a document is read only up to a heading such as "References" or "See also". The tool suggests facts; you write the questions.
 3. Write your questions in the file and point `[eval] questions` at it, or pass `--questions eval/my_questions.json` to each command.
 4. Check them with `uv run mini-rag eval-check --lenient`. It prints the question counts and every problem it finds. `--lenient` keeps the checks on each question and skips the rules for the set as a whole, so a set of 5 questions can pass. Without `--lenient` the check is strict and needs 24 to 28 answerable and 5 to 7 unanswerable questions, among other set-level rules.
@@ -94,7 +98,7 @@ When the set is large enough, `uv run mini-rag eval` compares BM25, dense and hy
 
 ## How to read the calibration table
 
-`calibrate` uses the configured embedder, chunk size, overlap, fusion settings and `top_k`. For each question it takes the best dense score among the top hits, then counts two kinds of error at each threshold, in steps of 0.05 across the range of the measured scores. "Answerable rejected" counts questions the corpus answers that the threshold would turn away. "Unanswerable accepted" counts questions it can't answer that would get through. The line under the table names the thresholds with the fewest total errors, and the suggested config line uses the lowest of them.
+`calibrate` uses the configured embedder, chunk size, overlap, fusion settings and `top_k`. It uses only the chunk size in `[chunking]`, not the sizes in `[eval] sizes`. For each question it takes the best dense score among the top hits, then counts two kinds of error at each threshold, in steps of 0.05 across the range of the measured scores. "Answerable rejected" counts questions the corpus answers that the threshold would turn away. "Unanswerable accepted" counts questions it can't answer that would get through. The line under the table names the thresholds with the fewest total errors, and the suggested config line uses the lowest of them.
 
 Look at more than the lowest total. When two thresholds tie, the lower one rejects fewer real answers, and its distance above the lowest answerable score tells you how much room it leaves for new questions. The included set went through this: 0.55 and 0.60 tied at 3 errors, and 0.55 was kept for its larger margin (decision D23 in [decisions.md](decisions.md)).
 

@@ -59,9 +59,11 @@ uv sync
 uv run pytest
 ```
 
+The test run should finish with no failures. The slow test is deselected by default, so the summary also reports one deselected test.
+
 Every command reads its settings from `mini-rag.toml` in the project root: the corpus folder, chunking, embedding model, retrieval, threshold, generator and eval files. The shipped file reproduces the included example, and a command-line option overrides the matching value in it. Use `--config PATH` to read another file.
 
-The default test run downloads nothing. The first `ingest` downloads the quantised embedding model, about 64 MB, into `.cache\fastembed`. Later runs reuse it.
+The default test run downloads nothing. The first `ingest` downloads the quantised embedding model, about 64 MB, into `.cache\fastembed`. Later runs reuse it. In a test on a fresh clone, the first ingest printed a warning about an unset Hugging Face token and, on Windows, a warning that symlinks are unavailable. The run succeeded anyway.
 
 ## Usage
 
@@ -93,10 +95,11 @@ The output ends with the answer and a line such as `found: no, written by a mode
 
 Query options:
 
+- `--index-dir DIR` sets the folder the index is read from (default `.cache/index`).
 - `--top-k N` sets how many fused hits to return (default 5).
 - `--threshold F` sets the dense score the best hit must reach to count as found (default 0.55, allowed range -1.0 to 1.0). The best dense score among the hits above is 0.528, so the default reports the question as not found. That's the right result, because no article in the corpus mentions the World Cup. With `--threshold 0.5` the same question is answered.
 - `--generate` asks a language model to write the answer from the retrieved chunks.
-- `--brief` cuts each hit's text to 160 characters and adds `...` when it was cut.
+- `--brief` cuts each hit's text to 160 characters and adds `...` when it was cut. The extractive answer below the hits is still printed in full.
 
 Generation is opt-in. Without `--generate` the answer is extractive: the retrieved chunk texts under their markers. The optional feature uses generation with a language model through the Anthropic API. It needs the `llm` extra (`uv sync --extra llm`) and the `ANTHROPIC_API_KEY` variable already set in the PowerShell session. If the key isn't set or the package is missing, the command prints a note and shows the extractive answer.
 
@@ -116,7 +119,7 @@ Eval options:
 - `--out PATH` changes where the report is written.
 - `--fusion-grid` also evaluates hybrid search under 12 fusion settings (k of 5, 10, 20 or 60, each with a BM25 weight of 1.0, 0.5 or 0.25) and writes `fusion_grid.md` next to the report. It first prints whether each index was loaded from the cache or built. The last grid run is in [eval/fusion_grid.md](eval/fusion_grid.md).
 
-Embedding is the slow part. In one run on a CPU, `--build-only` took 160 seconds for size 500 (1,741 chunks) and 154 seconds for size 1000 (780 chunks).
+Embedding is the slow part. Embedding each chunk size took about 2.5 to 3 minutes on the machine used, and times depend on the CPU.
 
 ## Make your own mini-rag
 

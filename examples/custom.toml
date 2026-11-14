@@ -1,5 +1,5 @@
 # Example config that swaps in the embedder from examples/custom_embedder.py.
-# Run from the project root:  mini-rag --config examples/custom.toml ingest
+# Run from the project root:  uv run mini-rag --config examples/custom.toml ingest
 
 [corpus]
 dir = "data/corpus"            # the included example corpus
@@ -15,7 +15,7 @@ i_dim = 256                    # passed to the class as a keyword argument
 dir = ".cache/index_custom"    # its own folder, so the default index stays untouched
 
 [gate]
-threshold = 0.55               # not calibrated for this embedder; run "mini-rag --config examples/custom.toml calibrate"
+threshold = 0.55               # not calibrated for this embedder; run "uv run mini-rag --config examples/custom.toml calibrate"
 
 [generator]
 kind = "none"                  # no generation; --generate prints a note and shows the extractive answer

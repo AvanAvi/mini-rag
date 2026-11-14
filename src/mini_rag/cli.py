@@ -100,57 +100,102 @@ class Cli:
   def build_parser(self, obj_config: RagConfig | None = None) -> argparse.ArgumentParser:
     """Return the argument parser; option defaults come from the config, or the built-in defaults."""
     obj_used = obj_config if obj_config is not None else RagConfig()
-    obj_parser = argparse.ArgumentParser(prog="mini-rag", description="A small hybrid-retrieval RAG pipeline.")
-    obj_parser.add_argument("--config", dest="s_config", default=self.S_CONFIG_FILE)
-    obj_commands = obj_parser.add_subparsers(dest="s_command", required=True)
+    # the formatter appends "(default: ...)" to every option help text that has a default
+    obj_format = argparse.ArgumentDefaultsHelpFormatter
+    obj_parser = argparse.ArgumentParser(
+      prog="mini-rag", description="A small hybrid-retrieval RAG pipeline.", formatter_class=obj_format,
+    )
+    obj_parser.add_argument(
+      "--config", dest="s_config", default=self.S_CONFIG_FILE, metavar="file", help="TOML config file to read",
+    )
+    obj_commands = obj_parser.add_subparsers(dest="s_command", required=True, metavar="command", help="what to run")
 
-    obj_ingest = obj_commands.add_parser("ingest", help="load, chunk, embed and save the corpus")
-    obj_ingest.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir)
-    obj_ingest.add_argument("--index-dir", dest="s_index_dir", default=obj_used.s_index_dir)
-    obj_ingest.add_argument("--size", dest="i_size", type=int, default=obj_used.i_chunk_size)
-    obj_ingest.add_argument("--overlap", dest="i_overlap", type=int, default=obj_used.i_chunk_overlap)
+    obj_ingest = obj_commands.add_parser(
+      "ingest", help="load, chunk, embed and save the corpus", formatter_class=obj_format,
+    )
+    obj_ingest.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir, metavar="dir",
+      help="folder of corpus files")
+    obj_ingest.add_argument("--index-dir", dest="s_index_dir", default=obj_used.s_index_dir, metavar="dir",
+      help="folder the index is written to")
+    obj_ingest.add_argument("--size", dest="i_size", type=int, default=obj_used.i_chunk_size, metavar="n",
+      help="chunk size in characters")
+    obj_ingest.add_argument("--overlap", dest="i_overlap", type=int, default=obj_used.i_chunk_overlap, metavar="n",
+      help="characters shared by neighbouring chunks")
 
-    obj_query = obj_commands.add_parser("query", help="retrieve chunks and answer a question")
-    obj_query.add_argument("s_question", metavar="question")
-    obj_query.add_argument("--index-dir", dest="s_index_dir", default=obj_used.s_index_dir)
-    obj_query.add_argument("--top-k", dest="i_top_k", type=int, default=obj_used.i_top_k)
-    obj_query.add_argument("--threshold", dest="f_threshold", type=float, default=obj_used.f_threshold)
-    obj_query.add_argument("--generate", dest="b_generate", action="store_true")
-    obj_query.add_argument("--brief", dest="b_brief", action="store_true")
+    obj_query = obj_commands.add_parser(
+      "query", help="retrieve chunks and answer a question", formatter_class=obj_format,
+    )
+    obj_query.add_argument("s_question", metavar="question", help="the question to answer")
+    obj_query.add_argument("--index-dir", dest="s_index_dir", default=obj_used.s_index_dir, metavar="dir",
+      help="folder the index is read from")
+    obj_query.add_argument("--top-k", dest="i_top_k", type=int, default=obj_used.i_top_k, metavar="n",
+      help="number of hits to show")
+    obj_query.add_argument("--threshold", dest="f_threshold", type=float, default=obj_used.f_threshold,
+      metavar="score", help="lowest dense score that counts as found")
+    obj_query.add_argument("--generate", dest="b_generate", action="store_true",
+      help="let the configured generator write the answer")
+    obj_query.add_argument("--brief", dest="b_brief", action="store_true", help="shorten the text of each hit")
 
-    obj_eval = obj_commands.add_parser("eval", help="compare the retrieval methods and sweep the answer gate")
-    obj_eval.add_argument("--questions", dest="s_questions", default=obj_used.s_questions)
-    obj_eval.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir)
-    obj_eval.add_argument("--sizes", dest="l_sizes", type=self.parse_sizes, default=list(obj_used.t_eval_sizes))
-    obj_eval.add_argument("--overlap", dest="i_overlap", type=int, default=obj_used.i_chunk_overlap)
-    obj_eval.add_argument("--gate-top-k", dest="i_gate_top_k", type=int, default=obj_used.i_top_k)
-    obj_eval.add_argument("--cache-dir", dest="s_cache_dir", default=obj_used.s_eval_cache_dir)
-    obj_eval.add_argument("--out", dest="s_out", default="eval/results.md")
-    obj_eval.add_argument("--rebuild", dest="b_rebuild", action="store_true")
-    obj_eval.add_argument("--build-only", dest="b_build_only", action="store_true")
-    obj_eval.add_argument("--fusion-grid", dest="b_fusion_grid", action="store_true")
+    obj_eval = obj_commands.add_parser(
+      "eval", help="compare the retrieval methods and sweep the answer gate", formatter_class=obj_format,
+    )
+    obj_eval.add_argument("--questions", dest="s_questions", default=obj_used.s_questions, metavar="file",
+      help="question set in JSON")
+    obj_eval.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir, metavar="dir",
+      help="folder of corpus files")
+    obj_eval.add_argument("--sizes", dest="l_sizes", type=self.parse_sizes, default=list(obj_used.t_eval_sizes),
+      metavar="list", help="comma-separated chunk sizes, such as 500,1000")
+    obj_eval.add_argument("--overlap", dest="i_overlap", type=int, default=obj_used.i_chunk_overlap, metavar="n",
+      help="characters shared by neighbouring chunks")
+    obj_eval.add_argument("--gate-top-k", dest="i_gate_top_k", type=int, default=obj_used.i_top_k, metavar="n",
+      help="hits the answer gate looks at")
+    obj_eval.add_argument("--cache-dir", dest="s_cache_dir", default=obj_used.s_eval_cache_dir, metavar="dir",
+      help="folder for the cached eval indexes")
+    obj_eval.add_argument("--out", dest="s_out", default="eval/results.md", metavar="file",
+      help="report file to write")
+    obj_eval.add_argument("--rebuild", dest="b_rebuild", action="store_true", help="rebuild the cached indexes")
+    obj_eval.add_argument("--build-only", dest="b_build_only", action="store_true",
+      help="only build the cached indexes")
+    obj_eval.add_argument("--fusion-grid", dest="b_fusion_grid", action="store_true",
+      help="also evaluate hybrid on the fusion grid")
 
-    obj_init = obj_commands.add_parser("eval-init", help="write a starter question file")
-    obj_init.add_argument("--out", dest="s_out", default=QuestionStarter.S_DEFAULT_PATH)
-    obj_init.add_argument("--force", dest="b_force", action="store_true")
+    obj_init = obj_commands.add_parser("eval-init", help="write a starter question file", formatter_class=obj_format)
+    obj_init.add_argument("--out", dest="s_out", default=QuestionStarter.S_DEFAULT_PATH, metavar="file",
+      help="question file to write")
+    obj_init.add_argument("--force", dest="b_force", action="store_true", help="overwrite an existing file")
 
-    obj_suggest = obj_commands.add_parser("eval-suggest", help="print candidate fact sentences from the corpus")
-    obj_suggest.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir)
-    obj_suggest.add_argument("--limit", dest="i_limit", type=int, default=30)
+    obj_suggest = obj_commands.add_parser(
+      "eval-suggest", help="print candidate fact sentences from the corpus", formatter_class=obj_format,
+    )
+    obj_suggest.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir, metavar="dir",
+      help="folder of corpus files")
+    obj_suggest.add_argument("--limit", dest="i_limit", type=int, default=30, metavar="n",
+      help="most sentences to print")
 
-    obj_check = obj_commands.add_parser("eval-check", help="check a question file against the corpus")
-    obj_check.add_argument("--questions", dest="s_questions", default=obj_used.s_questions)
-    obj_check.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir)
-    obj_check.add_argument("--lenient", dest="b_lenient", action="store_true")
+    obj_check = obj_commands.add_parser(
+      "eval-check", help="check a question file against the corpus", formatter_class=obj_format,
+    )
+    obj_check.add_argument("--questions", dest="s_questions", default=obj_used.s_questions, metavar="file",
+      help="question set in JSON")
+    obj_check.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir, metavar="dir",
+      help="folder of corpus files")
+    obj_check.add_argument("--lenient", dest="b_lenient", action="store_true",
+      help="run only the per-question checks and skip the set-level rules")
 
-    obj_calibrate = obj_commands.add_parser("calibrate", help="sweep the gate threshold for the configured embedder")
-    obj_calibrate.add_argument("--questions", dest="s_questions", default=obj_used.s_questions)
-    obj_calibrate.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir)
-    obj_calibrate.add_argument("--cache-dir", dest="s_cache_dir", default=obj_used.s_eval_cache_dir)
+    obj_calibrate = obj_commands.add_parser(
+      "calibrate", help="sweep the gate threshold for the configured embedder", formatter_class=obj_format,
+    )
+    obj_calibrate.add_argument("--questions", dest="s_questions", default=obj_used.s_questions, metavar="file",
+      help="question set in JSON")
+    obj_calibrate.add_argument("--corpus", dest="s_corpus", default=obj_used.s_corpus_dir, metavar="dir",
+      help="folder of corpus files")
+    obj_calibrate.add_argument("--cache-dir", dest="s_cache_dir", default=obj_used.s_eval_cache_dir, metavar="dir",
+      help="folder for the cached eval indexes")
 
     # --config is also accepted after the command; load_config() has already read its value
     for obj_command in (obj_ingest, obj_query, obj_eval, obj_init, obj_suggest, obj_check, obj_calibrate):
-      obj_command.add_argument("--config", dest="s_config", default=argparse.SUPPRESS)
+      obj_command.add_argument("--config", dest="s_config", default=argparse.SUPPRESS, metavar="file",
+        help="TOML config file to read")
     return obj_parser
 
   def parse_sizes(self, s_sizes: str) -> list[int]:
