@@ -37,6 +37,10 @@ class TestAnswerer:
     l_hits = [self.hit("a", 0, "x", None), self.hit("b", 0, "y", None)]
     self.assert_not_found(Answerer().answer("q", l_hits))
 
+  def test_default_threshold_is_0_55(self) -> None:
+    """An Answerer built without a threshold uses 0.55."""
+    assert Answerer().f_threshold == 0.55
+
   def test_best_score_below_threshold_not_found(self) -> None:
     """A best dense score just under the threshold is not found."""
     self.assert_not_found(Answerer(f_threshold=0.5).answer("q", [self.hit("a", 0, "x", 0.49)]))

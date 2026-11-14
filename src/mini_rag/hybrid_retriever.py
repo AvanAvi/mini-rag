@@ -8,8 +8,16 @@ from mini_rag.search_hit import SearchHit
 class HybridRetriever:
   """Fuses the rankings of a BM25 index and a dense index with Reciprocal Rank Fusion."""
 
-  def __init__(self, obj_bm25: object, obj_dense: object, i_k: int = 60, i_candidates: int = 20) -> None:
-    """Store two already-built indexes, the RRF constant i_k and the per-index candidate count."""
+  # fusion defaults; FusionSetting.default() reads them, so they are set in one place
+  I_DEFAULT_K = 60
+  F_DEFAULT_BM25_WEIGHT = 1.0
+  F_DEFAULT_DENSE_WEIGHT = 1.0
+
+  def __init__(
+    self, obj_bm25: object, obj_dense: object, i_k: int = I_DEFAULT_K, i_candidates: int = 20,
+    f_bm25_weight: float = F_DEFAULT_BM25_WEIGHT, f_dense_weight: float = F_DEFAULT_DENSE_WEIGHT,
+  ) -> None:
+    """Store two already-built indexes, the RRF constant i_k, the candidate count and the fusion weights."""
     if i_k < 1:
       raise ValueError(f"i_k must be at least 1, got {i_k}")
     if i_candidates < 1:
@@ -18,6 +26,8 @@ class HybridRetriever:
     self.obj_dense = obj_dense
     self.i_k = i_k
     self.i_candidates = i_candidates
+    self.f_bm25_weight = f_bm25_weight
+    self.f_dense_weight = f_dense_weight
     self.obj_fuser = RankFuser()
 
   def search(self, s_query: str, i_top_k: int) -> list[HybridHit]:
@@ -34,7 +44,9 @@ class HybridRetriever:
     d_dense_scores = self.score_table(l_dense_hits)
 
     # BM25 first, so ties in fused score keep BM25's order
-    l_fused = self.obj_fuser.fuse([l_bm25_hits, l_dense_hits], self.i_k)
+    l_fused = self.obj_fuser.fuse(
+      [l_bm25_hits, l_dense_hits], self.i_k, [self.f_bm25_weight, self.f_dense_weight],
+    )
     return [
       HybridHit(
         obj_chunk=obj_chunk,

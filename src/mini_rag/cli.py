@@ -3,6 +3,7 @@
 import argparse
 import sys
 import time
+from pathlib import Path
 
 from mini_rag.answer import Answer
 from mini_rag.answerer import Answerer
@@ -12,8 +13,11 @@ from mini_rag.dense_index import DenseIndex
 from mini_rag.document import Document
 from mini_rag.eval_index_store import EvalIndexStore
 from mini_rag.evaluator import Evaluator
+from mini_rag.fusion_grid import FusionGrid
+from mini_rag.fusion_grid_writer import FusionGridWriter
 from mini_rag.hybrid_hit import HybridHit
 from mini_rag.hybrid_retriever import HybridRetriever
+from mini_rag.index_bundle import IndexBundle
 from mini_rag.llm_client import LlmClient
 from mini_rag.loader import Loader
 from mini_rag.question_loader import QuestionLoader
@@ -28,6 +32,7 @@ class Cli:
   I_USAGE_ERROR = 2
   I_MAX_PROBLEMS = 10  # question-set problems printed before giving up
   I_BRIEF_LENGTH = 160  # characters of hit text shown with --brief
+  S_GRID_FILE = "fusion_grid.md"  # written next to the eval report by --fusion-grid
 
   def __init__(self, obj_embedder: object | None = None, obj_llm_client: object | None = None) -> None:
     """Store optional test doubles: an embedder for DenseIndex and a client replacing LlmClient."""
@@ -58,7 +63,7 @@ class Cli:
       )
     return self.eval(
       obj_args.s_questions, obj_args.s_corpus, obj_args.l_sizes, obj_args.i_overlap, obj_args.i_gate_top_k,
-      obj_args.s_cache_dir, obj_args.s_out, obj_args.b_rebuild, obj_args.b_build_only,
+      obj_args.s_cache_dir, obj_args.s_out, obj_args.b_rebuild, obj_args.b_build_only, obj_args.b_fusion_grid,
     )
 
   def build_parser(self) -> argparse.ArgumentParser:
@@ -76,7 +81,7 @@ class Cli:
     obj_query.add_argument("s_question", metavar="question")
     obj_query.add_argument("--index-dir", dest="s_index_dir", default=".cache/index")
     obj_query.add_argument("--top-k", dest="i_top_k", type=int, default=5)
-    obj_query.add_argument("--threshold", dest="f_threshold", type=float, default=0.5)
+    obj_query.add_argument("--threshold", dest="f_threshold", type=float, default=0.55)
     obj_query.add_argument("--generate", dest="b_generate", action="store_true")
     obj_query.add_argument("--brief", dest="b_brief", action="store_true")
 
@@ -90,6 +95,7 @@ class Cli:
     obj_eval.add_argument("--out", dest="s_out", default="eval/results.md")
     obj_eval.add_argument("--rebuild", dest="b_rebuild", action="store_true")
     obj_eval.add_argument("--build-only", dest="b_build_only", action="store_true")
+    obj_eval.add_argument("--fusion-grid", dest="b_fusion_grid", action="store_true")
     return obj_parser
 
   def parse_sizes(self, s_sizes: str) -> list[int]:
@@ -152,9 +158,13 @@ class Cli:
 
   def eval(
     self, s_questions_path: str, s_corpus_dir: str, l_sizes: list[int], i_overlap: int, i_gate_top_k: int,
-    s_cache_dir: str, s_out_path: str, b_rebuild: bool, b_build_only: bool,
+    s_cache_dir: str, s_out_path: str, b_rebuild: bool, b_build_only: bool, b_fusion_grid: bool = False,
   ) -> int:
-    """Run the evaluation and write the report, or only build the index caches; return an exit code."""
+    """Run the evaluation and write the report, or only build the index caches; return an exit code.
+
+    With b_fusion_grid, hybrid is also evaluated on the FusionGrid settings and fusion_grid.md is
+    written next to the report.
+    """
     try:
       obj_store = EvalIndexStore(s_cache_dir, self.obj_embedder)
       if b_build_only:
@@ -166,18 +176,35 @@ class Cli:
       if obj_validation.l_problems:
         return self.fail_problems(obj_validation.l_problems)
 
-      obj_evaluator = Evaluator(obj_store, l_sizes, i_overlap, i_gate_top_k=i_gate_top_k)
+      l_settings = FusionGrid().settings() if b_fusion_grid else None
+      obj_evaluator = Evaluator(
+        obj_store, l_sizes, i_overlap, i_gate_top_k=i_gate_top_k, l_fusion_settings=l_settings,
+      )
       if b_rebuild:
         obj_evaluator.prepare(l_docs, b_rebuild=True)
-      obj_result = obj_evaluator.run(l_docs, l_questions)
+      l_bundles = obj_evaluator.prepare(l_docs)
+      if b_fusion_grid:
+        self.print_origins(l_bundles)
+      obj_result = obj_evaluator.run(l_docs, l_questions, l_bundles)
       obj_writer = ReportWriter(obj_validation.d_overlap)
       print(obj_writer.console_text(obj_result, l_questions))
       obj_writer.write(s_out_path, obj_result, l_questions)
+      if b_fusion_grid:
+        s_grid_path = str(Path(s_out_path).with_name(self.S_GRID_FILE))
+        FusionGridWriter().write(s_grid_path, obj_result)
     except (FileNotFoundError, ValueError) as obj_error:
       return self.fail(str(obj_error))
 
     print(f"report: {s_out_path}")
+    if b_fusion_grid:
+      print(f"fusion grid: {s_grid_path}")
     return self.I_OK
+
+  def print_origins(self, l_bundles: list[IndexBundle]) -> None:
+    """Print, per chunk size, the chunk count and whether the index was loaded from the cache or built."""
+    for obj_bundle in l_bundles:
+      s_origin = "loaded" if obj_bundle.b_loaded else "built"
+      print(f"size {obj_bundle.i_size}: {len(obj_bundle.l_chunks)} chunks, {s_origin}")
 
   def build_only(
     self, obj_store: EvalIndexStore, l_docs: list[Document], l_sizes: list[int], i_overlap: int, b_rebuild: bool,
