@@ -2,6 +2,15 @@
 
 mini-rag answers questions from a small local corpus of 20 English Wikipedia articles by combining keyword search (BM25) with dense embedding search. It shows the retrieved passages and only answers when the best match is close enough, so a question the corpus can't answer gets "Not found in the corpus." instead of a guess.
 
+### Limits at a glance
+
+1. The eval set holds 31 questions (25 answerable, 6 unanswerable), written by the project author after reading the source sentences. 14 of the 25 answerable questions share at most 40 percent of their words longer than 3 characters with the source sentence. A difference of 2 questions or fewer between two setups is inside the noise ([D17](docs/decisions.md#d17-question-set), [D22](docs/decisions.md#d22-fusion-tuning)).
+2. At chunk size 500, dense search alone found the relevant chunk in its top 5 for 21 of the 25 answerable questions and hybrid search for 19. At chunk size 1000 the counts are 21 and 22. Hybrid stays the default ([D22](docs/decisions.md#d22-fusion-tuning)).
+3. The shipped threshold 0.55 belongs to `BAAI/bge-small-en-v1.5`. In one measurement with `minishlab/potion-base-8M`, `calibrate` gave its lowest error count at 0.35, 0.40 and 0.45, and at 0.55 it counted 8 of the 25 answerable questions as rejected ([D28](docs/decisions.md#d28-per-model-threshold-and-calibration), [D29](docs/decisions.md#d29-fresh-clone-test)).
+4. The three on-topic unanswerable questions have best dense scores from 0.656 to 0.733 at chunk size 500, inside the answerable range of 0.648 to 0.890, so no threshold separates them without rejecting answerable questions ([D23](docs/decisions.md#d23-threshold-decision)).
+5. The corpus is 20 English Wikipedia pages stored as plain text, and the plain-text extracts drop tables ([D11](docs/decisions.md#d11-wikipedia-corpus)).
+6. The default test suite makes no network call, and no test sends a request to a hosted generation service ([D13](docs/decisions.md#d13-test-strategy)).
+
 ## How it works
 
 Ingest runs once. It reads the text files in `data/corpus`, cuts them into overlapping 500-character chunks, embeds every chunk with the `BAAI/bge-small-en-v1.5` model and saves the vectors and chunks to `.cache/index`.
@@ -46,7 +55,9 @@ Legend: green means built and merged, yellow means not built yet.
 
 ## Setup
 
-These steps use Windows PowerShell. You need [uv](https://docs.astral.sh/uv/) installed; the project pins Python 3.13 in `.python-version`.
+You need [uv](https://docs.astral.sh/uv/) installed. uv runs the project with the Python version pinned in `.python-version` (3.13), and `pyproject.toml` requires Python 3.13 or later. uv installing Python itself wasn't tested ([D29](docs/decisions.md#d29-fresh-clone-test)).
+
+The commands in this README were run on Windows with Windows PowerShell 5.1. `scripts\env.ps1` is a PowerShell script only. No test has run on Linux or macOS.
 
 1. Open a PowerShell window in the project root.
 2. Dot-source the environment script with `. .\scripts\env.ps1` so the model caches stay inside `.cache` for this session.
@@ -59,11 +70,11 @@ uv sync
 uv run pytest
 ```
 
-The test run should finish with no failures. The slow test is deselected by default, so the summary also reports one deselected test.
+The expected output ends with `368 passed, 1 deselected`. The slow test is deselected by default; `uv run pytest -m slow` runs it.
 
 Every command reads its settings from `mini-rag.toml` in the project root: the corpus folder, chunking, embedding model, retrieval, threshold, generator and eval files. The shipped file reproduces the included example, and a command-line option overrides the matching value in it. Use `--config PATH` to read another file.
 
-The default test run downloads nothing. The first `ingest` downloads the quantised embedding model, about 64 MB, into `.cache\fastembed`. Later runs reuse it. In a test on a fresh clone, the first ingest printed a warning about an unset Hugging Face token and, on Windows, a warning that symlinks are unavailable. The run succeeded anyway.
+The default test run downloads nothing. The first `ingest` downloads the quantised embedding model into `.cache\fastembed`; the model folder is 64.1 MB (67,181,330 bytes). Later runs reuse it. In a test on a fresh clone, the first ingest printed a warning that no Hugging Face token was set and, on Windows, a warning that symlinks are unavailable. The run succeeded anyway.
 
 ## Usage
 
@@ -134,7 +145,7 @@ Eval options:
 - `--out PATH` changes where the report is written.
 - `--fusion-grid` also evaluates hybrid search under 12 fusion settings (k of 5, 10, 20 or 60, each with a BM25 weight of 1.0, 0.5 or 0.25) and writes `fusion_grid.md` next to the report. It first prints whether each index was loaded from the cache or built. The last grid run is in [eval/fusion_grid.md](eval/fusion_grid.md).
 
-Embedding is the slow part. Embedding each chunk size took about 2.5 to 3 minutes on the machine used, and times depend on the CPU.
+Embedding is the slow part. In the fresh-clone test, `eval --build-only` took 156.1 s and 161.4 s for the two chunk sizes ([D29](docs/decisions.md#d29-fresh-clone-test)). Those times come from one machine; no other CPU was measured.
 
 ## Make your own mini-rag
 
@@ -144,12 +155,20 @@ mini-rag is also a template. Edit `mini-rag.toml` to point it at your own folder
 
 - The default threshold of 0.55 was picked from the sweep in [eval/results.md](eval/results.md), which counts the errors at each threshold from 0.40 to 0.80. It is tuned on the questions it is measured on, so it will look better there than on new questions. At chunk size 500 it sits only 0.022 above the highest off-topic score in the set.
 - The gate can't reject an on-topic question the corpus doesn't answer. The three on-topic unanswerable questions in the eval set have best dense scores of 0.656 to 0.733 at chunk size 500, inside the answerable range of 0.648 to 0.890, and all three are accepted. The dense score measures how close the topic is, not whether the answer is present, so no threshold on it separates them.
-- On this question set hybrid search is no better than dense search alone. With the default fusion settings (k = 60, both weights 1.0), hybrid finds 19 of 25 answers in its top 5 at chunk size 500 against 21 for dense, and 22 against 21 at size 1000. None of the 12 settings in [eval/fusion_grid.md](eval/fusion_grid.md) improved on the defaults by more than the noise, so they are unchanged. This may not hold for other corpora or for questions that depend on exact keywords.
+- On this question set hybrid search is no better than dense search alone. With the default fusion settings (k = 60, both weights 1.0), hybrid finds 19 of 25 answers in its top 5 at chunk size 500 against 21 for dense, and 22 against 21 at size 1000. None of the 12 settings in [eval/fusion_grid.md](eval/fusion_grid.md) improved on the defaults by more than the noise, so they are unchanged. No other corpus and no question set built on exact keywords was tested.
 - The sweep covers top-k 5 only.
 - The gate reads the best dense score among the returned hits, so the result depends on `--top-k`. A larger top-k can bring in a chunk with a higher dense score.
 - Wikipedia's plain-text extracts drop tables, and formulas lose their layout. In `data/corpus/nuclear_fusion.txt`, "in the following table." is followed by an empty line, and `data/corpus/plasma_physics.txt` shows the ionisation fraction as `α=nini+nn`.
 - The evaluation uses 25 answerable and 6 unanswerable hand-written questions. With so few, a difference of 1 to 2 questions between two setups is noise. Hand-written questions also tend to reuse words from the source text, which favours keyword search.
-- The unanswerable set is small. One question is a sixth of it, so a single question moves the acceptance rate by about 17 percentage points.
+- The unanswerable set is small. One question is a sixth of it, so a single question moves the acceptance rate by 16.7 percentage points.
+
+## Contributing
+
+1. Open an issue with the Feature request or Bug report template.
+2. Fork the repository, create a branch, and make the change together with its tests and the documentation updates.
+3. Open a pull request whose title and description follow the format in [CONTRIBUTING.md](CONTRIBUTING.md#pull-request-title-and-description).
+
+[CONTRIBUTING.md](CONTRIBUTING.md) holds the full rules.
 
 ## License
 
