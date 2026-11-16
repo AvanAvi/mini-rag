@@ -1,9 +1,12 @@
 # mini-rag
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hero-dark.svg">
-  <img src="assets/readme/hero.svg" width="100%" alt="The mini-rag pipeline in order: Text files, Chunker, Keyword (BM25) and Dense search, Rank fusion, Answer gate.">
-</picture>
+<p align="center">
+  <img src="assets/readme/banner.svg" width="100%" alt="A terminal window running the query &quot;Who won the 1998 football World Cup?&quot; and printing &quot;Not found in the corpus.&quot;, above the pipeline stages in order: Text files, Chunker, BM25 search and Dense search, RankFuser, Answerer.">
+</p>
+
+<p align="center">
+  <img src="assets/readme/badges.svg" width="100%" alt="Badges: python 3.13, license MIT, embeddings fastembed, keyword rank-bm25, vectors numpy, model bge-small-en-v1.5, config TOML, platform Windows.">
+</p>
 
 [Setup](#setup) · [Usage](#usage) · [Make your own](#make-your-own-mini-rag) · [Contributing](#contributing) · [Decisions](docs/decisions.md)
 
@@ -77,7 +80,7 @@ uv sync
 uv run pytest
 ```
 
-The expected output ends with `368 passed, 1 deselected`. The slow test is deselected by default; `uv run pytest -m slow` runs it.
+The expected output ends with `393 passed, 1 deselected`. The slow test is deselected by default; `uv run pytest -m slow` runs it.
 
 Every command reads its settings from `mini-rag.toml` in the project root: the corpus folder, chunking, embedding model, retrieval, threshold, generator and eval files. The shipped file reproduces the included example, and a command-line option overrides the matching value in it. Use `--config PATH` to read another file.
 
@@ -99,7 +102,7 @@ Ask a question:
 uv run mini-rag query "Who won the 1998 football World Cup?"
 ```
 
-Each hit prints its rank, its marker, its dense, BM25 and fused scores, and the chunk text. A `-` means that retriever didn't return the chunk. The real output for this question starts like this (chunk texts left out):
+Each hit prints its rank, its marker, its dense, BM25 and fused scores, and the chunk text. A `-` means that retriever didn't return the chunk. The real output for this question follows; the chunk text printed under each hit is left out of this block:
 
 ```text
 1. [nuclear_safety_and_security#82]  dense 0.502  bm25 14.754  fused 0.0313
@@ -107,6 +110,10 @@ Each hit prints its rank, its marker, its dense, BM25 and fused scores, and the 
 3. [chernobyl_disaster#145]  dense 0.528  bm25 -  fused 0.0164
 4. [tokamak#94]  dense -  bm25 12.990  fused 0.0161
 5. [chernobyl_disaster#6]  dense 0.520  bm25 -  fused 0.0161
+
+Answer:
+Not found in the corpus.
+found: no, written by a model: no
 ```
 
 The output ends with the answer and a line such as `found: no, written by a model: no`.

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="96" viewBox="0 0 1280 96" role="img" aria-labelledby="title desc">
+  <title id="title">mini-rag technology</title>
+  <desc id="desc">Eight label and value pills: python 3.13, license MIT, embeddings fastembed, keyword rank-bm25, vectors numpy, model bge-small-en-v1.5, config TOML, platform Windows.</desc>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="18" text-anchor="middle">
+    <g id="python">
+      <rect x="218" y="8" width="158" height="36" rx="6" fill="#21262d"/>
+      <rect x="308" y="8" width="68" height="36" rx="6" fill="#238636"/>
+      <rect x="308" y="8" width="8" height="36" fill="#238636"/>
+      <rect x="218" y="8" width="158" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="263" y="32" fill="#e6edf3">python</text>
+      <text x="342" y="32" fill="#ffffff">3.13</text>
+    </g>
+    <g id="license">
+      <rect x="392" y="8" width="158" height="36" rx="6" fill="#21262d"/>
+      <rect x="493" y="8" width="57" height="36" rx="6" fill="#238636"/>
+      <rect x="493" y="8" width="8" height="36" fill="#238636"/>
+      <rect x="392" y="8" width="158" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="442.5" y="32" fill="#e6edf3">license</text>
+      <text x="521.5" y="32" fill="#ffffff">MIT</text>
+    </g>
+    <g id="embeddings">
+      <rect x="566" y="8" width="257" height="36" rx="6" fill="#21262d"/>
+      <rect x="700" y="8" width="123" height="36" rx="6" fill="#238636"/>
+      <rect x="700" y="8" width="8" height="36" fill="#238636"/>
+      <rect x="566" y="8" width="257" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="633" y="32" fill="#e6edf3">embeddings</text>
+      <text x="761.5" y="32" fill="#ffffff">fastembed</text>
+    </g>
+    <g id="keyword">
+      <rect x="839" y="8" width="224" height="36" rx="6" fill="#21262d"/>
+      <rect x="940" y="8" width="123" height="36" rx="6" fill="#238636"/>
+      <rect x="940" y="8" width="8" height="36" fill="#238636"/>
+      <rect x="839" y="8" width="224" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="889.5" y="32" fill="#e6edf3">keyword</text>
+      <text x="1001.5" y="32" fill="#ffffff">rank-bm25</text>
+    </g>
+    <g id="vectors">
+      <rect x="196" y="52" width="180" height="36" rx="6" fill="#21262d"/>
+      <rect x="297" y="52" width="79" height="36" rx="6" fill="#238636"/>
+      <rect x="297" y="52" width="8" height="36" fill="#238636"/>
+      <rect x="196" y="52" width="180" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="246.5" y="76" fill="#e6edf3">vectors</text>
+      <text x="336.5" y="76" fill="#ffffff">numpy</text>
+    </g>
+    <g id="model">
+      <rect x="392" y="52" width="290" height="36" rx="6" fill="#21262d"/>
+      <rect x="471" y="52" width="211" height="36" rx="6" fill="#238636"/>
+      <rect x="471" y="52" width="8" height="36" fill="#238636"/>
+      <rect x="392" y="52" width="290" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="431.5" y="76" fill="#e6edf3">model</text>
+      <text x="576.5" y="76" fill="#ffffff">bge-small-en-v1.5</text>
+    </g>
+    <g id="config">
+      <rect x="698" y="52" width="158" height="36" rx="6" fill="#21262d"/>
+      <rect x="788" y="52" width="68" height="36" rx="6" fill="#238636"/>
+      <rect x="788" y="52" width="8" height="36" fill="#238636"/>
+      <rect x="698" y="52" width="158" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="743" y="76" fill="#e6edf3">config</text>
+      <text x="822" y="76" fill="#ffffff">TOML</text>
+    </g>
+    <g id="platform">
+      <rect x="872" y="52" width="213" height="36" rx="6" fill="#21262d"/>
+      <rect x="984" y="52" width="101" height="36" rx="6" fill="#238636"/>
+      <rect x="984" y="52" width="8" height="36" fill="#238636"/>
+      <rect x="872" y="52" width="213" height="36" rx="6" fill="none" stroke="#30363d"/>
+      <text x="928" y="76" fill="#e6edf3">platform</text>
+      <text x="1034.5" y="76" fill="#ffffff">Windows</text>
+    </g>
+  </g>
+</svg>

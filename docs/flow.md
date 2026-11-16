@@ -128,6 +128,7 @@ All paths are relative to the project root.
 | Path | Contents | In git |
 |---|---|---|
 | `data/corpus/` | The 20 article texts and `SOURCES.md` with each article's revision id and SHA-256 | yes |
+| `assets/readme/` | `banner.svg` and `badges.svg`, the two images at the top of the README, checked by `tests/test_readme_assets.py` | yes |
 | `data/corpus_titles.txt` | The article titles that `CorpusDownloader` fetches | yes |
 | `.cache/index/` | `vectors.npy` (1,741 × 384 float32) and `chunks.json` (chunks plus model name), written by `ingest` | no |
 | `.cache/eval/` | One folder per chunk setting, such as `size_500_overlap_100`, with `vectors.npy`, `chunks.json` and `meta.json`, written by `eval` | no |
