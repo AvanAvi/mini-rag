@@ -1,5 +1,12 @@
 # mini-rag
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hero-dark.svg">
+  <img src="assets/readme/hero.svg" width="100%" alt="The mini-rag pipeline in order: Text files, Chunker, Keyword (BM25) and Dense search, Rank fusion, Answer gate.">
+</picture>
+
+[Setup](#setup) · [Usage](#usage) · [Make your own](#make-your-own-mini-rag) · [Contributing](#contributing) · [Decisions](docs/decisions.md)
+
 mini-rag answers questions from a small local corpus of 20 English Wikipedia articles by combining keyword search (BM25) with dense embedding search. It shows the retrieved passages and only answers when the best match is close enough, so a question the corpus can't answer gets "Not found in the corpus." instead of a guess.
 
 ### Limits at a glance
