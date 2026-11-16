@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">mini-rag</title>
+  <desc id="desc">The name mini-rag, the line answers questions from a local corpus by combining keyword search with dense embedding search, and a row of pipeline stages from left to right: Text files, Chunker, Keyword and Dense search, Rank fusion, Answer gate.</desc>
+  <rect width="1280" height="360" fill="#0d1117"/>
+  <g id="title-block">
+    <text x="64" y="116" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="64" font-weight="700" fill="#e6edf3">mini-rag</text>
+    <text x="64" y="170" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="22" fill="#8b949e">answers questions from a local corpus by combining keyword search with dense embedding search</text>
+  </g>
+  <g id="stages" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" text-anchor="middle" fill="#aff5b4">
+    <rect x="64" y="230" width="180" height="80" rx="12" fill="#0f2d1a" stroke="#3fb950" stroke-width="2"/>
+    <text x="154" y="277">Text files</text>
+    <rect x="280" y="230" width="160" height="80" rx="12" fill="#0f2d1a" stroke="#3fb950" stroke-width="2"/>
+    <text x="360" y="277">Chunker</text>
+    <rect x="475" y="230" width="300" height="80" rx="12" fill="#0f2d1a" stroke="#3fb950" stroke-width="2"/>
+    <text x="625" y="277">Keyword and Dense search</text>
+    <rect x="811" y="230" width="190" height="80" rx="12" fill="#0f2d1a" stroke="#3fb950" stroke-width="2"/>
+    <text x="906" y="277">Rank fusion</text>
+    <rect x="1036" y="230" width="180" height="80" rx="12" fill="#0f2d1a" stroke="#3fb950" stroke-width="2"/>
+    <text x="1126" y="277">Answer gate</text>
+  </g>
+  <g id="arrows" stroke="#8b949e" stroke-width="2" fill="#8b949e">
+    <line x1="250" y1="270" x2="268" y2="270"/>
+    <polygon points="268,264 275,270 268,276" stroke="none"/>
+    <line x1="446" y1="270" x2="463" y2="270"/>
+    <polygon points="463,264 470,270 463,276" stroke="none"/>
+    <line x1="781" y1="270" x2="799" y2="270"/>
+    <polygon points="799,264 806,270 799,276" stroke="none"/>
+    <line x1="1007" y1="270" x2="1024" y2="270"/>
+    <polygon points="1024,264 1031,270 1024,276" stroke="none"/>
+  </g>
+</svg>
