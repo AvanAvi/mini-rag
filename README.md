@@ -101,7 +101,21 @@ Query options:
 - `--generate` asks a language model to write the answer from the retrieved chunks.
 - `--brief` cuts each hit's text to 160 characters and adds `...` when it was cut. The extractive answer below the hits is still printed in full.
 
-Generation is opt-in. Without `--generate` the answer is extractive: the retrieved chunk texts under their markers. The optional feature uses generation with a language model through the Anthropic API. It needs the `llm` extra (`uv sync --extra llm`) and the `ANTHROPIC_API_KEY` variable already set in the PowerShell session. If the key isn't set or the package is missing, the command prints a note and shows the extractive answer.
+Generation is off by default. Without `--generate` the answer is extractive: the retrieved chunk texts under their markers. The shipped `mini-rag.toml` sets `[generator] kind = "none"`, so `--generate` prints `note: no generator is configured ([generator] kind is "none"); showing the extractive answer` and then the extractive answer.
+
+To let a model write the answer through the Anthropic API:
+
+1. Install the optional package with `uv sync --extra llm`.
+2. Replace the `kind` and `model` lines of the `[generator]` section in `mini-rag.toml` with the block below, putting your provider's model name in place of the placeholder.
+3. Set the key in the PowerShell session that runs the query with `$env:ANTHROPIC_API_KEY = "<your key>"`.
+
+```toml
+[generator]
+kind = "anthropic"
+model = "<model name from your provider>"
+```
+
+With kind `"anthropic"` and no `model`, every command stops with exit code 2 and `error: [generator] model is required for kind "anthropic"; set it to the model name from your provider`. If the key isn't set or the package is missing, `query --generate` prints a note and shows the extractive answer. [docs/make-your-own.md](docs/make-your-own.md#swapping-the-generator) covers the other generator kinds.
 
 Run the evaluation:
 

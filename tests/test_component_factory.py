@@ -69,10 +69,11 @@ class TestComponentFactory:
 
   def test_generator_kind_anthropic_uses_the_configured_model(self) -> None:
     """Kind "anthropic" returns an LlmClient for the configured model; no request is made."""
-    obj_generator = ComponentFactory(RagConfig(s_generator_model="some-model")).generator()
+    obj_config = RagConfig(s_generator_kind="anthropic", s_generator_model="test-model")
+    obj_generator = ComponentFactory(obj_config).generator()
     assert isinstance(obj_generator, LlmClient)
-    assert obj_generator.s_model == "some-model"
-    assert ComponentFactory(RagConfig()).generator().s_model == LlmClient().s_model
+    assert obj_generator.s_model == "test-model"
+    assert ComponentFactory(RagConfig()).generator() is None
 
   def test_generator_kind_openai_compatible(self) -> None:
     """Kind "openai_compatible" passes the address, the model and the key variable name on."""

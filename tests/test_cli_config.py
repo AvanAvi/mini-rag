@@ -126,5 +126,5 @@ class TestCliConfig:
     capsys.readouterr()
     assert self.cli().run(["--config", s_config, "query", "tokamak plasma", "--generate"]) == 0
     s_out = capsys.readouterr().out
-    assert 'note: the generator kind is "none"; showing the extractive answer' in s_out
+    assert 'note: no generator is configured ([generator] kind is "none"); showing the extractive answer' in s_out
     assert "found: yes, written by a model: no" in s_out

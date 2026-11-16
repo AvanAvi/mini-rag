@@ -222,7 +222,7 @@ The core pipeline should run with no account, no network and no cost. Importing 
 
 ### Trade-off or status
 
-The gate still runs first, so generation never sees a question that failed the threshold. The prompt instruction reduces but can't rule out instruction-following on source text. Built. The client is now chosen in the config, and the Anthropic API is the default kind (D25).
+The gate still runs first, so generation never sees a question that failed the threshold. The prompt instruction reduces but can't rule out instruction-following on source text. Built. The client is now chosen in the config, and the default kind is `"none"`, so `--generate` prints a note and the extractive answer until a generator is configured (D25, D30).
 
 ## D11 Wikipedia corpus
 
@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 339 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 349 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -607,7 +607,7 @@ Define abstract base classes for the embedding model and the answer-writing mode
 
 ### What it does
 
-`[embedder] kind` is `fastembed` or `custom`, and `[generator] kind` is `anthropic`, `openai_compatible`, `none` or `custom`. A custom kind names a class as `"package.module:ClassName"`, and an `options` table under the section is passed to its constructor. `examples/custom_embedder.py` is a hashed bag-of-words embedder with no dependencies, and `examples/custom.toml` runs it with its own index and eval cache folders.
+`[embedder] kind` is `fastembed` or `custom`, and `[generator] kind` is `anthropic`, `openai_compatible`, `none` or `custom`, with `none` as the default (D30). Kinds `anthropic` and `openai_compatible` need a non-empty `[generator] model`; `ConfigLoader` raises `ValueError` naming `[generator] model` otherwise. A custom kind names a class as `"package.module:ClassName"`, and an `options` table under the section is passed to its constructor. `examples/custom_embedder.py` is a hashed bag-of-words embedder with no dependencies, and `examples/custom.toml` runs it with its own index and eval cache folders.
 
 ### How
 
@@ -629,7 +629,7 @@ Add a generator kind for servers that accept the commonly used chat-completions 
 
 ### What it does
 
-`OpenAiCompatibleClient.generate` posts the model name, a system and a user message, and `max_tokens` (500) as JSON to `<base_url>/chat/completions`, and returns the text of the first choice. `base_url` and `model` come from the config. If `api_key_env` names an environment variable that is set, its value is sent as a bearer token. A server that needs no key needs no variable.
+`OpenAiCompatibleClient.generate` posts the model name, a system and a user message, and `max_tokens` (500) as JSON to `<base_url>/chat/completions`, and returns the text of the first choice. `base_url` and `model` come from the config, and the config loader refuses this kind with an empty `model` (D30). If `api_key_env` names an environment variable that is set, its value is sent as a bearer token. A server that needs no key needs no variable.
 
 ### How
 
@@ -708,3 +708,25 @@ The project is also a template, so its documentation has to work for someone who
 ### Trade-off or status
 
 The test found eight documentation discrepancies, now corrected in the README and make-your-own.md. It also found that `query` downloaded a newly configured model before it refused the old index. `FastEmbedEmbedder` now loads its model on first use, so the name check comes first (D25). The third finding was `--help` output that showed dest names such as `S_INDEX_DIR` and no option help. Every option now has help text and a lowercase metavar (D21). A single run on one machine says nothing about other systems.
+
+## D30 Generator default
+
+### Decision
+
+The shipped generator kind is `"none"` and the shipped model name is empty. The repository names no model of any hosted generation service.
+
+### What it does
+
+`query --generate` with the shipped settings prints `note: no generator is configured ([generator] kind is "none"); showing the extractive answer`, then the extractive answer, and exits with code 0. Its hits and answer are identical to the same query without `--generate` (`tests\test_generator_default.py`). A user who wants generation sets `[generator] kind` and `model`; `mini-rag.toml` holds a commented block for the `anthropic`, `openai_compatible` and `custom` kinds, each with the placeholder `"<model name from your provider>"` where a model name goes.
+
+### How
+
+`RagConfig` defaults to `s_generator_kind = "none"` and `s_generator_model = ""`. `ConfigLoader.check_generator_model` raises `ValueError` naming `[generator] model` when the kind is `anthropic` or `openai_compatible` and the model is empty, so every command stops with exit code 2 before it runs. Kinds `none` and `custom` need no model. `LlmClient` takes `s_model` as a required argument with no default, and the tests pass the neutral name `test-model`.
+
+### Why
+
+A model name in the shipped config goes out of date when the provider retires the model, and it ties the template to one provider. With kind `"none"` the default setup needs no account, no key and no network, which matches D10. A missing model name now fails when the config is loaded, with the key named, instead of during a request.
+
+### Trade-off or status
+
+Built. A user who wants generation edits two lines and supplies a model name. Before this change the shipped kind was `"anthropic"` with a fixed model name, so `--generate` printed the missing-key note when `ANTHROPIC_API_KEY` was unset.

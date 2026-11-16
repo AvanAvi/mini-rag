@@ -10,7 +10,6 @@ from mini_rag.config import RagConfig
 from mini_rag.config_loader import ConfigLoader
 from mini_rag.dense_index import DenseIndex
 from mini_rag.fusion_setting import FusionSetting
-from mini_rag.llm_client import LlmClient
 
 
 class TestConfigLoader:
@@ -27,14 +26,14 @@ class TestConfigLoader:
     obj_config = RagConfig()
     assert obj_config.f_threshold == Answerer().f_threshold
     assert obj_config.s_embedder_model == DenseIndex().s_model_name
-    assert obj_config.s_generator_model == LlmClient().s_model
+    assert (obj_config.s_generator_kind, obj_config.s_generator_model) == ("none", "")
     obj_fusion = FusionSetting.default()
     assert (obj_config.i_rrf_k, obj_config.f_bm25_weight, obj_config.f_dense_weight) == (
       obj_fusion.i_k, obj_fusion.f_bm25_weight, obj_fusion.f_dense_weight,
     )
     assert (obj_config.s_corpus_dir, obj_config.t_extensions) == ("data/corpus", (".txt",))
     assert (obj_config.i_chunk_size, obj_config.i_chunk_overlap, obj_config.i_top_k) == (500, 100, 5)
-    assert (obj_config.s_embedder_kind, obj_config.s_generator_kind) == ("fastembed", "anthropic")
+    assert (obj_config.s_embedder_kind, obj_config.s_generator_kind) == ("fastembed", "none")
     assert (obj_config.s_index_dir, obj_config.s_eval_cache_dir) == (".cache/index", ".cache/eval")
     assert (obj_config.s_questions, obj_config.t_eval_sizes) == ("eval/questions.json", (500, 1000))
 

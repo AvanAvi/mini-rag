@@ -30,4 +30,4 @@ class TestLlmClient:
     # a None entry in sys.modules makes "import anthropic" raise ImportError
     monkeypatch.setitem(sys.modules, "anthropic", None)
     with pytest.raises(RuntimeError, match="uv sync --extra llm"):
-      LlmClient().generate("system", "user")
+      LlmClient("test-model").generate("system", "user")

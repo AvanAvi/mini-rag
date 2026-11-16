@@ -6,11 +6,11 @@ from mini_rag.generator import Generator
 
 
 class LlmClient(Generator):
-  """Sends a system and a user prompt to a Claude model and returns the reply text."""
+  """Sends a system and a user prompt to the named model through the Anthropic API and returns the reply text."""
 
   S_KEY_VARIABLE = "ANTHROPIC_API_KEY"
 
-  def __init__(self, s_model: str = "claude-sonnet-5-5", i_max_tokens: int = 500) -> None:
+  def __init__(self, s_model: str, i_max_tokens: int = 500) -> None:
     """Store the model and token limit; the anthropic client is created on first use."""
     self.s_model = s_model
     self.i_max_tokens = i_max_tokens
