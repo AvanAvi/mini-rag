@@ -21,11 +21,12 @@ class Calibrator:
 
   def __init__(
     self, obj_store: EvalIndexStore, i_size: int, i_overlap: int, obj_setting: FusionSetting, i_top_k: int,
+    s_gate_mode: str = "hybrid",
   ) -> None:
-    """Store the index store, the chunk setting, the fusion setting and the gate's top-k."""
+    """Store the index store, the chunk setting, the fusion setting, the gate's top-k and the gate's hit source."""
     self.obj_setting = obj_setting
     self.obj_evaluator = Evaluator(
-      obj_store, [i_size], i_overlap, i_gate_top_k=i_top_k, l_fusion_settings=[obj_setting],
+      obj_store, [i_size], i_overlap, i_gate_top_k=i_top_k, l_fusion_settings=[obj_setting], s_gate_mode=s_gate_mode,
     )
 
   def prepare(self, l_docs: list[Document]) -> IndexBundle:
@@ -34,9 +35,9 @@ class Calibrator:
 
   def run(self, obj_bundle: IndexBundle, l_questions: list[Question]) -> SizeResult:
     """Return the best dense score per question and the sweep rows; no retrieval metric is computed."""
-    obj_hybrid = self.obj_evaluator.hybrid_method(obj_bundle, self.obj_setting)
+    obj_gate = self.obj_evaluator.gate_method(obj_bundle, self.obj_setting)
     d_best_dense = {
-      obj_question.s_id: self.obj_evaluator.best_dense(obj_hybrid, obj_question) for obj_question in l_questions
+      obj_question.s_id: self.obj_evaluator.best_dense(obj_gate, obj_question) for obj_question in l_questions
     }
     l_scores = [f_best for f_best in d_best_dense.values() if f_best is not None]
     l_sweep_rows = ThresholdSweeper(self.thresholds(l_scores)).sweep(

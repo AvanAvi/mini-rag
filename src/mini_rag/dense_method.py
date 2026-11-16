@@ -2,6 +2,8 @@
 
 from mini_rag.chunk import Chunk
 from mini_rag.dense_index import DenseIndex
+from mini_rag.dense_only_retriever import DenseOnlyRetriever
+from mini_rag.hybrid_hit import HybridHit
 from mini_rag.retrieval_method import RetrievalMethod
 
 
@@ -22,3 +24,7 @@ class DenseMethod(RetrievalMethod):
   def rank(self, s_question: str, i_depth: int) -> list[Chunk]:
     """Return the chunks of the top i_depth dense hits, best first."""
     return [obj_hit.obj_chunk for obj_hit in self.obj_index.search(s_question, i_depth)]
+
+  def hits(self, s_question: str, i_depth: int) -> list[HybridHit]:
+    """Return the top i_depth dense hits with their cosine scores; BM25 and fused scores are None."""
+    return DenseOnlyRetriever(self.obj_index).search(s_question, i_depth)

@@ -1,13 +1,13 @@
 """Command-line entry point: ingest, query, eval and the eval kit commands."""
 
 import argparse
+import dataclasses
 import sys
 import time
 from pathlib import Path
 
 from mini_rag.answer import Answer
 from mini_rag.answerer import Answerer
-from mini_rag.bm25_index import Bm25Index
 from mini_rag.chunker import Chunker
 from mini_rag.component_factory import ComponentFactory
 from mini_rag.config import RagConfig
@@ -21,7 +21,6 @@ from mini_rag.fusion_grid import FusionGrid
 from mini_rag.fusion_grid_writer import FusionGridWriter
 from mini_rag.fusion_setting import FusionSetting
 from mini_rag.hybrid_hit import HybridHit
-from mini_rag.hybrid_retriever import HybridRetriever
 from mini_rag.index_bundle import IndexBundle
 from mini_rag.llm_client import LlmClient
 from mini_rag.loader import Loader
@@ -40,6 +39,11 @@ class Cli:
   I_BRIEF_LENGTH = 160  # characters of hit text shown with --brief
   S_GRID_FILE = "fusion_grid.md"  # written next to the eval report by --fusion-grid
   S_CONFIG_FILE = "mini-rag.toml"  # read from the working directory when --config is not given
+  S_BM25_NOTE = (
+    "note: bm25 mode has no dense score, so the threshold is not applied; "
+    "the answer counts as found when at least one chunk matched a query term"
+  )
+  S_CALIBRATE_BM25_ERROR = "calibrate needs a dense score; set [retrieval] mode to hybrid or dense"
 
   def __init__(self, obj_embedder: object | None = None, obj_llm_client: object | None = None) -> None:
     """Store optional test doubles: an embedder for DenseIndex and a client replacing LlmClient."""
@@ -69,7 +73,7 @@ class Cli:
     if obj_args.s_command == "query":
       return self.query(
         obj_args.s_question, obj_args.s_index_dir, obj_args.i_top_k,
-        obj_args.f_threshold, obj_args.b_generate, obj_args.b_brief, obj_config,
+        obj_args.f_threshold, obj_args.b_generate, obj_args.b_brief, obj_config, obj_args.s_mode,
       )
     if obj_args.s_command == "eval-init":
       return EvalKit().init(obj_args.s_out, obj_args.b_force)
@@ -78,7 +82,7 @@ class Cli:
     if obj_args.s_command == "eval-check":
       return EvalKit().check(obj_args.s_questions, obj_args.s_corpus, obj_config.t_extensions, obj_args.b_lenient)
     if obj_args.s_command == "calibrate":
-      return self.calibrate(obj_args.s_questions, obj_args.s_corpus, obj_args.s_cache_dir, obj_config)
+      return self.calibrate(obj_args.s_questions, obj_args.s_corpus, obj_args.s_cache_dir, obj_config, obj_args.s_mode)
     return self.eval(
       obj_args.s_questions, obj_args.s_corpus, obj_args.l_sizes, obj_args.i_overlap, obj_args.i_gate_top_k,
       obj_args.s_cache_dir, obj_args.s_out, obj_args.b_rebuild, obj_args.b_build_only, obj_args.b_fusion_grid,
@@ -135,6 +139,7 @@ class Cli:
     obj_query.add_argument("--generate", dest="b_generate", action="store_true",
       help="let the configured generator write the answer")
     obj_query.add_argument("--brief", dest="b_brief", action="store_true", help="shorten the text of each hit")
+    self.add_mode_option(obj_query, obj_used)
 
     obj_eval = obj_commands.add_parser(
       "eval", help="compare the retrieval methods and sweep the answer gate", formatter_class=obj_format,
@@ -191,12 +196,18 @@ class Cli:
       help="folder of corpus files")
     obj_calibrate.add_argument("--cache-dir", dest="s_cache_dir", default=obj_used.s_eval_cache_dir, metavar="dir",
       help="folder for the cached eval indexes")
+    self.add_mode_option(obj_calibrate, obj_used)
 
     # --config is also accepted after the command; load_config() has already read its value
     for obj_command in (obj_ingest, obj_query, obj_eval, obj_init, obj_suggest, obj_check, obj_calibrate):
       obj_command.add_argument("--config", dest="s_config", default=argparse.SUPPRESS, metavar="file",
         help="TOML config file to read")
     return obj_parser
+
+  def add_mode_option(self, obj_command: argparse.ArgumentParser, obj_used: RagConfig) -> None:
+    """Add --mode to a command; its default is the config's [retrieval] mode."""
+    obj_command.add_argument("--mode", dest="s_mode", choices=RagConfig.T_RETRIEVAL_MODES,
+      default=obj_used.s_retrieval_mode, help="retrieval mode: fused hybrid search, dense search alone or BM25 alone")
 
   def parse_sizes(self, s_sizes: str) -> list[int]:
     """Turn a comma-separated --sizes value such as "500,1000" into a list of ints."""
@@ -246,10 +257,14 @@ class Cli:
 
   def query(
     self, s_question: str, s_index_dir: str, i_top_k: int, f_threshold: float, b_generate: bool,
-    b_brief: bool = False, obj_config: RagConfig | None = None,
+    b_brief: bool = False, obj_config: RagConfig | None = None, s_mode: str | None = None,
   ) -> int:
-    """Retrieve chunks for a question and print them plus the answer; return an exit code."""
-    obj_used = obj_config if obj_config is not None else RagConfig()
+    """Retrieve chunks for a question and print them plus the answer; return an exit code.
+
+    s_mode, when given, replaces the config's [retrieval] mode (the --mode option).
+    """
+    obj_used = self.with_mode(obj_config if obj_config is not None else RagConfig(), s_mode)
+    b_bm25 = obj_used.s_retrieval_mode == "bm25"
     try:
       obj_dense = self.dense_index(obj_used)
       obj_dense.load(s_index_dir)
@@ -260,20 +275,17 @@ class Cli:
       return self.fail(str(obj_error))
 
     try:
-      obj_bm25 = Bm25Index()
-      obj_bm25.build(obj_dense.l_chunks)
-      obj_retriever = HybridRetriever(
-        obj_bm25, obj_dense, i_k=obj_used.i_rrf_k,
-        f_bm25_weight=obj_used.f_bm25_weight, f_dense_weight=obj_used.f_dense_weight,
-      )
-      # built before searching so a bad threshold fails early
-      obj_extractive = Answerer(f_threshold)
+      obj_retriever = ComponentFactory(obj_used).retriever(obj_dense)
+      # built before searching so a bad threshold fails early; bm25 hits carry no dense score to gate on
+      obj_extractive = Answerer(f_threshold, b_gate_on_dense=not b_bm25)
       l_hits = obj_retriever.search(s_question, i_top_k)
     except ValueError as obj_error:
       return self.fail(str(obj_error))
 
     for i_rank, obj_hit in enumerate(l_hits, start=1):
       self.print_hit(i_rank, obj_hit, b_brief)
+    if b_bm25:
+      print(self.S_BM25_NOTE)
     self.print_answer(self.answer(s_question, l_hits, obj_extractive, b_generate, obj_used))
     return self.I_OK
 
@@ -325,8 +337,16 @@ class Cli:
       print(f"fusion grid: {s_grid_path}")
     return self.I_OK
 
-  def calibrate(self, s_questions_path: str, s_corpus_dir: str, s_cache_dir: str, obj_config: RagConfig) -> int:
-    """Sweep the gate threshold with the configured embedder, chunking, fusion and top-k; return an exit code."""
+  def calibrate(
+    self, s_questions_path: str, s_corpus_dir: str, s_cache_dir: str, obj_config: RagConfig, s_mode: str | None = None,
+  ) -> int:
+    """Sweep the gate threshold with the configured embedder, chunking, fusion, top-k and mode; return an exit code.
+
+    s_mode, when given, replaces the config's [retrieval] mode; mode "bm25" has no dense score and is refused.
+    """
+    obj_config = self.with_mode(obj_config, s_mode)
+    if obj_config.s_retrieval_mode == "bm25":
+      return self.fail(self.S_CALIBRATE_BM25_ERROR)
     try:
       obj_store = self.index_store(s_cache_dir, obj_config)
     except ValueError as obj_error:
@@ -334,7 +354,14 @@ class Cli:
     return EvalKit().calibrate(
       obj_store, s_questions_path, s_corpus_dir, obj_config.t_extensions,
       obj_config.i_chunk_size, obj_config.i_chunk_overlap, self.fusion_setting(obj_config), obj_config.i_top_k,
+      obj_config.s_retrieval_mode,
     )
+
+  def with_mode(self, obj_config: RagConfig, s_mode: str | None) -> RagConfig:
+    """Return the config with s_mode as its [retrieval] mode, or unchanged when s_mode is None."""
+    if s_mode is None:
+      return obj_config
+    return dataclasses.replace(obj_config, s_retrieval_mode=s_mode)
 
   def fusion_setting(self, obj_config: RagConfig) -> FusionSetting:
     """Return the fusion setting named in the config's [retrieval] section."""
@@ -380,7 +407,7 @@ class Cli:
     try:
       obj_client = self.make_client(obj_config) if b_generate else None
       if obj_client is not None:
-        return Answerer(obj_extractive.f_threshold, obj_client).answer(s_question, l_hits)
+        return Answerer(obj_extractive.f_threshold, obj_client, obj_extractive.b_gate_on_dense).answer(s_question, l_hits)
     except Exception as obj_error:
       # e.g. the anthropic package is missing, the API returned an error, a server did not reply,
       # or a bad generator setting; the clients never put a key value into their messages
@@ -407,7 +434,7 @@ class Cli:
       f"{i_rank}. [{obj_chunk.s_doc_id}#{obj_chunk.i_index}]"
       f"  dense {self.format_score(obj_hit.f_dense_score)}"
       f"  bm25 {self.format_score(obj_hit.f_bm25_score)}"
-      f"  fused {obj_hit.f_rrf_score:.4f}"
+      f"  fused {'-' if obj_hit.f_rrf_score is None else f'{obj_hit.f_rrf_score:.4f}'}"
     )
     s_text = obj_chunk.s_text
     if b_brief and len(s_text) > self.I_BRIEF_LENGTH:

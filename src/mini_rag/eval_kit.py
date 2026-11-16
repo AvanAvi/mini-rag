@@ -56,9 +56,12 @@ class EvalKit:
 
   def calibrate(
     self, obj_store: EvalIndexStore, s_questions_path: str, s_corpus_dir: str, t_extensions: tuple[str, ...],
-    i_size: int, i_overlap: int, obj_setting: FusionSetting, i_top_k: int,
+    i_size: int, i_overlap: int, obj_setting: FusionSetting, i_top_k: int, s_gate_mode: str = "hybrid",
   ) -> int:
-    """Sweep the gate threshold on a question file and print the line to put in the config file."""
+    """Sweep the gate threshold on a question file and print the line to put in the config file.
+
+    s_gate_mode "hybrid" takes the best dense score from the fused hits, "dense" from the dense hits alone.
+    """
     try:
       l_questions = QuestionLoader().load(s_questions_path)
       l_docs = Loader(s_corpus_dir, t_extensions).load()
@@ -66,7 +69,7 @@ class EvalKit:
       if l_problems:
         print(f"error: the question set has {len(l_problems)} problems; run eval-check to see them", file=sys.stderr)
         return self.I_USAGE_ERROR
-      obj_calibrator = Calibrator(obj_store, i_size, i_overlap, obj_setting, i_top_k)
+      obj_calibrator = Calibrator(obj_store, i_size, i_overlap, obj_setting, i_top_k, s_gate_mode)
       obj_bundle = obj_calibrator.prepare(l_docs)
       obj_size = obj_calibrator.run(obj_bundle, l_questions)
     except (FileNotFoundError, ValueError) as obj_error:
@@ -76,7 +79,9 @@ class EvalKit:
       print(s_warning)
     s_origin = "loaded" if obj_bundle.b_loaded else "built"
     print(f"size {obj_bundle.i_size}: {len(obj_bundle.l_chunks)} chunks, {s_origin}")
-    print(f"Threshold sweep for {obj_store.s_model_name}, {obj_setting.s_label}, top-k {i_top_k}")
+    # the fusion setting only applies to hybrid hits, so dense mode names the mode instead
+    s_hits = obj_setting.s_label if s_gate_mode == "hybrid" else f"{s_gate_mode} mode"
+    print(f"Threshold sweep for {obj_store.s_model_name}, {s_hits}, top-k {i_top_k}")
     for s_line in ReportTables().sweep(obj_size):
       print(s_line)
     l_best = obj_calibrator.best_thresholds(obj_size)
