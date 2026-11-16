@@ -62,7 +62,7 @@ Cut each document into windows of 500 characters that overlap by 100, with no wo
 
 ### Why
 
-Character windows are simple to reason about and to test, and their behaviour doesn't depend on a sentence splitter. With a 100-character overlap, any phrase of up to 100 characters is whole in at least one chunk.
+Character windows are easy to reason about and to test, and their behaviour doesn't depend on a sentence splitter. With a 100-character overlap, any phrase of up to 100 characters is whole in at least one chunk.
 
 ### Trade-off or status
 
@@ -218,7 +218,7 @@ Without `--generate`, the answer is the retrieved chunk texts, each under its `[
 
 ### Why
 
-The core pipeline should run with no account, no network and no cost. Importing the package lazily means the default install doesn't need it. Treating chunk text as data limits what text inside an article could make the model do.
+The core pipeline must run with no account, no network and no cost. Importing the package lazily means the default install doesn't need it. Treating chunk text as data limits what text inside an article could make the model do.
 
 ### Trade-off or status
 
@@ -284,7 +284,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### Why
 
-Tests should be fast, deterministic and runnable offline. `DenseIndex`, `Cli`, `Answerer` and `CorpusDownloader` take their model or network collaborator as a constructor argument, so tests pass a fake in directly.
+Tests must be fast, deterministic and runnable offline. `DenseIndex`, `Cli`, `Answerer` and `CorpusDownloader` take their model or network collaborator as a constructor argument, so tests pass a fake in directly.
 
 ### Trade-off or status
 
@@ -531,7 +531,7 @@ A review raised this hypothesis: at k = 60 with 20 candidates per list, a chunk 
 | 5 | `stellarator#90` | 15 | 11 | 0.02742 | no |
 | 6 | `stellarator#0` | 1 | not in the top 20 | 0.01639 | yes |
 
-The relevant chunk is first in the dense ranking and ends up sixth, behind five chunks that both retrievers returned. A smaller k or a lower BM25 weight could have reduced that effect, so both were measured.
+The relevant chunk is first in the dense ranking and ends up sixth, behind five chunks that both retrievers returned. The grid measured both a smaller k and a lower BM25 weight: at size 500, k = 5 or k = 10 with a BM25 weight of 0.25 raised hybrid's hit@5 from 19/25 to 21/25, and k = 5 with a BM25 weight of 0.25 raised the ties with dense on first rank from 16 to 22.
 
 ### Trade-off or status
 
@@ -593,7 +593,7 @@ Every command accepts `--config PATH`, before or after the command name, and rea
 
 ### Why
 
-A template user should change one file, not command lines or code. Checking types and names when the file is read turns a typo into an error message that names the key, instead of a silent fall back to a default. `tomllib` adds no dependency.
+A template user must change one file, not command lines or code. Checking types and names when the file is read turns a typo into an error message that names the key, instead of a silent fall back to a default. `tomllib` adds no dependency.
 
 ### Trade-off or status
 
@@ -806,7 +806,7 @@ The README opens with two hand-written SVG files, `assets/readme/banner.svg` and
 
 ### How
 
-The banner is one dark image, so it needs no light and dark variants and no theme switching. The wordmark is drawn as paths on a 5 by 7 cell grid with 12-unit cells, so it depends on no font. `tests/readme_asset_checker.py` enforces the limits, and `tests/test_readme_assets.py` runs it on the real files and on one hand-made bad file per rule. The limits are: xmlns, `role="img"`, a title and a desc as the first children, no script, foreignObject, image, a, animate or set element, no `@import`, no CSS animation or transition, no external URL, no XML comment, no metadata, no absolute path, two allowed font stacks, a font-size of at least 18 and at most 40 KB per file. The traceability check collapses whitespace and requires every text node of the banner to occur in `README.md`, `CONTRIBUTING.md`, `docs/*.md`, `mini-rag.toml`, `pyproject.toml`, `.python-version` or `LICENSE`; a string made only of `$`, `>`, `›`, `+` and spaces is exempt. The tagline is four tspans, each a phrase from the README's first sentence, and a test checks that they join to the 93-character tagline. A second test checks the stage order against the edges of the flow diagram, counting the dotted edges from the dense index to both searches. The badge pairs must equal the provenance table in the checker, and each row's source file must hold its substring: `.python-version` holds `3.13`, `LICENSE` holds `MIT License`, `pyproject.toml` holds `fastembed`, `rank-bm25` and `numpy`, `mini-rag.toml` holds `bge-small-en-v1.5`, and `README.md` holds `mini-rag.toml` and `Windows PowerShell 5.1`.
+The banner is one dark image, so it needs no light and dark variants and no theme switching. The wordmark is drawn as paths on a 5 by 7 cell grid with 12-unit cells, so it depends on no font. `tests/readme_asset_checker.py` enforces the limits, and `tests/test_readme_assets.py` runs it on the real files and on one hand-made bad file per rule. The limits are: xmlns, `role="img"`, a title and a desc as the first children, no script, foreignObject, image, a, animate or set element, no `@import`, no CSS animation or transition, no external URL, no XML comment, no metadata, no absolute path, two allowed font stacks, a font-size of at least 18 and at most 40 KB per file. The traceability check collapses whitespace and requires every text node of the banner to occur in `README.md`, `CONTRIBUTING.md`, `docs/*.md`, `mini-rag.toml`, `pyproject.toml`, `.python-version` or `LICENSE`; a string made only of `$`, `>`, `›`, `+` and spaces is exempt. The tagline is four tspans, each a phrase from the README's first sentence, and a test checks that they join to the 93-character tagline. A second test checks the stage order against the edges of the flow diagram, counting the dotted edges from the dense index to both searches. `tests/readme_asset_checker.py` reads the Mermaid edges in `docs/flow.md` to check the order of the pipeline stages, so an edit to the diagram's edge syntax can make that test fail while the banner is still correct. The badge pairs must equal the provenance table in the checker, and each row's source file must hold its substring: `.python-version` holds `3.13`, `LICENSE` holds `MIT License`, `pyproject.toml` holds `fastembed`, `rank-bm25` and `numpy`, `mini-rag.toml` holds `bge-small-en-v1.5`, and `README.md` holds `mini-rag.toml` and `Windows PowerShell 5.1`.
 
 Measured WCAG contrast ratios (text needs 4.5:1, filled graphics 3:1 against the window background `#0d1117`):
 

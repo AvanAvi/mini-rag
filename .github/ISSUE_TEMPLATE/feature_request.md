@@ -21,4 +21,4 @@ Will you implement it yourself (yes or no):
 
 ## Default values
 
-Does the change alter a default value (yes or no)? If yes, attach the eval tables that justify it, as [CONTRIBUTING.md](../../CONTRIBUTING.md#suggest-a-feature-or-report-a-bug) describes:
+Does the change alter a default value (yes or no)? If yes, attach the eval tables that justify it, as [CONTRIBUTING.md](https://github.com/AvanAvi/mini-rag/blob/main/CONTRIBUTING.md#suggest-a-feature-or-report-a-bug) describes:
