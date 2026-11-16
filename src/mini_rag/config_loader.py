@@ -9,6 +9,8 @@ from mini_rag.config import RagConfig
 class ConfigLoader:
   """Maps TOML sections and keys onto RagConfig fields and checks every value's type."""
 
+  T_KINDS_NEEDING_MODEL = ("anthropic", "openai_compatible")  # generator kinds that send a model name
+
   # section -> key -> (RagConfig field, value type)
   D_SCHEMA = {
     "corpus": {"dir": ("s_corpus_dir", "str"), "extensions": ("t_extensions", "str_list")},
@@ -62,6 +64,7 @@ class ConfigLoader:
     obj_config = RagConfig(**d_fields)
     self.check_kind("embedder.kind", obj_config.s_embedder_kind, RagConfig.T_EMBEDDER_KINDS)
     self.check_kind("generator.kind", obj_config.s_generator_kind, RagConfig.T_GENERATOR_KINDS)
+    self.check_generator_model(obj_config)
     return obj_config
 
   def convert(self, s_full_key: str, obj_value: object, s_type: str) -> object:
@@ -93,3 +96,11 @@ class ConfigLoader:
     """Raise ValueError naming the key when the kind is not one of the known kinds."""
     if s_kind not in t_kinds:
       raise ValueError(f"config key {s_full_key} must be one of {', '.join(t_kinds)}, got {s_kind!r}")
+
+  def check_generator_model(self, obj_config: RagConfig) -> None:
+    """Raise ValueError naming [generator] model when a kind that sends requests has no model name."""
+    s_kind = obj_config.s_generator_kind
+    if s_kind in self.T_KINDS_NEEDING_MODEL and not obj_config.s_generator_model:
+      raise ValueError(
+        f'[generator] model is required for kind "{s_kind}"; set it to the model name from your provider'
+      )

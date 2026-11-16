@@ -26,8 +26,24 @@ dense_weight = 1.0             # weight of the embedding ranking in the fusion
 threshold = 0.55               # lowest best dense score that counts as found; belongs to the embedder above
 
 [generator]
-kind = "anthropic"             # "anthropic", "openai_compatible", "none" or "custom"; only used with --generate
-model = "claude-sonnet-5-5"    # model name sent to the generator
+kind = "none"                  # "none", "anthropic", "openai_compatible" or "custom"; only used with --generate
+model = ""                     # model name sent to the generator; required for "anthropic" and "openai_compatible"
+
+# To let a model write the answer, replace the two lines above with one of these blocks.
+#
+# Anthropic API; run uv sync --extra llm and set ANTHROPIC_API_KEY in the session first:
+# kind = "anthropic"
+# model = "<model name from your provider>"
+#
+# A server that accepts chat-completions requests:
+# kind = "openai_compatible"
+# model = "<model name from your provider>"
+# base_url = "http://localhost:8080/v1"
+# api_key_env = "<name of the variable holding the key; leave this line out for a server without a key>"
+#
+# A Generator subclass of your own; [generator.options] holds its keyword arguments:
+# kind = "custom"
+# class = "package.module:ClassName"
 
 [eval]
 questions = "eval/questions.json"  # question set used by eval, eval-check and calibrate

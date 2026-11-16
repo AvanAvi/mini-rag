@@ -33,8 +33,8 @@ class RagConfig:
   # [gate]; the threshold belongs to the configured embedding model
   f_threshold: float = 0.55
   # [generator]
-  s_generator_kind: str = "anthropic"
-  s_generator_model: str = "claude-sonnet-5-5"
+  s_generator_kind: str = "none"
+  s_generator_model: str = ""  # required for kinds "anthropic" and "openai_compatible"
   s_generator_base_url: str = ""  # for kind "openai_compatible"
   s_generator_api_key_env: str = ""  # name of the environment variable holding the key, never the key
   s_generator_class: str = ""  # "package.module:ClassName", for kind "custom"

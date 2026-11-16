@@ -393,7 +393,7 @@ class Cli:
       return self.obj_llm_client
     obj_used = obj_config if obj_config is not None else RagConfig()
     if obj_used.s_generator_kind == "none":
-      print('note: the generator kind is "none"; showing the extractive answer')
+      print('note: no generator is configured ([generator] kind is "none"); showing the extractive answer')
       return None
     if obj_used.s_generator_kind == "anthropic" and not LlmClient.is_available():
       print(f"note: {LlmClient.S_KEY_VARIABLE} is not set; showing the extractive answer")
