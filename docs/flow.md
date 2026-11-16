@@ -38,7 +38,7 @@ Legend: green means built and merged, yellow means not built yet. The dotted lin
 
 ## Configuration
 
-Before any command runs, `Cli.load_config()` finds `--config` among the arguments and `ConfigLoader.load()` reads that TOML file, or `mini-rag.toml` in the working directory when the option is left out, into a frozen `RagConfig`. A key left out of the file keeps its built-in default, a missing default file means all defaults, and a wrong type or an unknown key, section or kind is an error that names the key. `Cli.build_parser()` then uses the config's values as the option defaults, so the precedence is, highest first: the command-line option, the config file, the built-in default.
+Before any command runs, `Cli.load_config()` finds `--config` among the arguments and `ConfigLoader.load()` reads that TOML file, or `mini-rag.toml` in the working directory when the option is left out, into a frozen `RagConfig`. A key left out of the file keeps its built-in default, a missing default file means all defaults, and a wrong type, or a key, section or kind outside the schema, is an error that names the key. `Cli.build_parser()` then uses the config's values as the option defaults, so the precedence is, highest first: the command-line option, the config file, the built-in default.
 
 `ComponentFactory` turns the `[embedder]` and `[generator]` sections into objects. `embedder()` returns a `FastEmbedEmbedder` after checking the model name against fastembed's list of supported models, or for kind `custom` imports the named `Embedder` subclass and passes `[embedder.options]` as keyword arguments. `generator()` returns an `LlmClient` (kind `anthropic`), an `OpenAiCompatibleClient` (kind `openai_compatible`), `None` (kind `none`) or a custom `Generator` subclass. `Embedder` and `Generator` are the abstract base classes in `embedder.py` and `generator.py`. Tests pass an embedder or a client to `Cli` directly, which skips the factory.
 
@@ -119,7 +119,7 @@ All are frozen dataclasses except `EvalResult` and the `SizeResult` objects it h
 |---|---|---|---|
 | BM25 | 0 upwards (non-positive hits are dropped) | Keyword overlap, weighted by how rare each word is and adjusted for chunk length. | Other BM25 scores for the same question only. The scale changes with the question's words. |
 | Dense cosine | -1 to 1 | Similarity in meaning between the question vector and the chunk vector. | Other cosine scores from the same model. The range is fixed, so one threshold can be applied to every question, which is why the answer gate uses it. |
-| Fused RRF | above 0, at most 2/61 (about 0.0328) | The sum of weight / (60 + rank) over the retrievers that returned the chunk, with both weights at their default of 1.0. Only the ranks matter. | Other fused scores for the same question only. It can't be compared with BM25 or cosine scores. |
+| Fused RRF | above 0, at most 2/61 (0.0328 to four decimals) | The sum of weight / (60 + rank) over the retrievers that returned the chunk, with both weights at their default of 1.0. Only the ranks matter. | Other fused scores for the same question only. It can't be compared with BM25 or cosine scores. |
 
 ## Where things live
 
@@ -131,7 +131,7 @@ All paths are relative to the project root.
 | `data/corpus_titles.txt` | The article titles that `CorpusDownloader` fetches | yes |
 | `.cache/index/` | `vectors.npy` (1,741 × 384 float32) and `chunks.json` (chunks plus model name), written by `ingest` | no |
 | `.cache/eval/` | One folder per chunk setting, such as `size_500_overlap_100`, with `vectors.npy`, `chunks.json` and `meta.json`, written by `eval` | no |
-| `.cache/fastembed/` | The quantised embedding model, in `models--Qdrant--bge-small-en-v1.5-onnx-Q`, about 64 MB | no |
+| `.cache/fastembed/` | The quantised embedding model, in `models--Qdrant--bge-small-en-v1.5-onnx-Q`, 64.1 MB (67,181,330 bytes) | no |
 | `.cache/huggingface/` | Hugging Face hub files, kept here by `HF_HOME` | no |
 | `.cache/pytest-tmp/` | Temporary folders made by tests | no |
 | `eval/questions.json` | The 25 answerable and 6 unanswerable eval questions | yes |
@@ -163,7 +163,7 @@ Here's how to read it.
 
 - **BM25.** The tokens are `who`, `won`, `the`, `1998`, `football`, `world` and `cup`. Hit 1 contains "who", "1998" and "world" (from a passage on a 1998 coolant loss at a French reactor). Hit 4 contains "won" and "world". Both score high on words that have nothing to do with football.
 - **Dense.** Hit 3 has the highest cosine score in the whole index, 0.528, but BM25 didn't return it, so its BM25 column shows `-`.
-- **Fusion.** Hit 3 is first in the dense ranking alone, so its fused score is 1/61, about 0.0164. Hits 4 and 5 are each second in one ranking, so both get 1/62, about 0.0161. The tie keeps BM25's hit first, which is why `tokamak#94` comes before `chernobyl_disaster#6`. Hit 1 ranks first because both retrievers returned it.
+- **Fusion.** Hit 3 is first in the dense ranking alone, so its fused score is 1/61, which is 0.0164 to four decimals. Hits 4 and 5 are each second in one ranking, so both get 1/62, which is 0.0161 to four decimals. The tie keeps BM25's hit first, which is why `tokamak#94` comes before `chernobyl_disaster#6`. Hit 1 ranks first because both retrievers returned it.
 - **Gate.** The top fused hit has a dense score of 0.502, but the gate reads the best dense score among all five hits, 0.528. That's below 0.55, so the output is "Not found in the corpus." with `found: no`, which is correct.
 
 With `--threshold 0.5` the same hits come back, 0.528 is at least the threshold, and the five chunk texts are printed as the extractive answer. That's a wrong acceptance, and 0.5 was the default until the threshold sweep in `eval/results.md` counted both kinds of error at each threshold (see [decisions.md, D23](decisions.md#d23-threshold-decision)).

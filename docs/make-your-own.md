@@ -33,7 +33,7 @@ The shipped threshold of 0.55 belongs to the default embedding model, `BAAI/bge-
 
 ### A fastembed model
 
-Set `[embedder] kind = "fastembed"` and `model` to a name from fastembed's list of supported models. The installed fastembed (0.9.1) lists 41 models. mini-rag checks the name against that list before loading anything and rejects an unknown name with a message that shows how to print the list:
+Set `[embedder] kind = "fastembed"` and `model` to a name from fastembed's list of supported models. The installed fastembed (0.9.1) lists 41 models. mini-rag checks the name against that list before loading anything and rejects a name that isn't on that list with a message that shows how to print the list:
 
 ```powershell
 uv run python -c "from fastembed import TextEmbedding; print([d_model['model'] for d_model in TextEmbedding.list_supported_models()])"
@@ -92,7 +92,7 @@ A good answerable question:
 - uses a phrase found in at most 2 documents, so a passage from an unrelated document rarely counts as a hit;
 - is worded in your own words where you can. Questions that copy the source sentence favour keyword search.
 
-A good unanswerable question has a `topic` of `on_topic` (about your subject, but the corpus has no answer) or `off_topic`, and `absent_terms` that a correct answer would contain. eval-check confirms that none of those terms occurs anywhere in the corpus. On-topic questions are the hard case for the threshold and worth including.
+A good unanswerable question has a `topic` of `on_topic` (on your subject, but the corpus has no answer) or `off_topic`, and `absent_terms` that a correct answer would contain. eval-check confirms that none of those terms occurs anywhere in the corpus. On-topic questions are the hard case for the threshold and worth including.
 
 When the set is large enough, `uv run mini-rag eval` compares BM25, dense and hybrid search at the chunk sizes in `[eval] sizes` and writes `eval/results.md`.
 

@@ -36,11 +36,11 @@ Each chunk and each question becomes a 384-dimensional vector. The saved index h
 
 ### How
 
-`DenseIndex` passes the model name to `FastEmbedEmbedder`, which creates `TextEmbedding(model_name=...)` on first use. fastembed loads a quantised ONNX build of the model, stored in `.cache/fastembed/models--Qdrant--bge-small-en-v1.5-onnx-Q` (67,181,330 bytes, about 64 MB). `build()` calls `embed()` on chunk texts, and `search()` calls `query_embed()` on the question, which applies the model's query prefix.
+`DenseIndex` passes the model name to `FastEmbedEmbedder`, which creates `TextEmbedding(model_name=...)` on first use. fastembed loads a quantised ONNX build of the model, stored in `.cache/fastembed/models--Qdrant--bge-small-en-v1.5-onnx-Q` (67,181,330 bytes, 64.1 MB). `build()` calls `embed()` on chunk texts, and `search()` calls `query_embed()` on the question, which applies the model's query prefix.
 
 ### Why
 
-It's a small English model that fastembed supports directly, so ingest runs on a CPU (about 160 seconds for the corpus, see D14). bge models expect a different treatment for queries and passages, which is why the two calls are kept apart.
+It's a small English model that fastembed supports directly, so ingest runs on a CPU (159 s for the corpus in one measured run, see D14). bge models expect a different treatment for queries and passages, which is why the two calls are kept apart.
 
 ### Trade-off or status
 
@@ -62,7 +62,7 @@ Cut each document into windows of 500 characters that overlap by 100, with no wo
 
 ### Why
 
-Character windows are simple to reason about and to test, and their behaviour doesn't depend on a sentence splitter. With a 100-character overlap, any phrase of up to 100 characters appears whole in at least one chunk.
+Character windows are simple to reason about and to test, and their behaviour doesn't depend on a sentence splitter. With a 100-character overlap, any phrase of up to 100 characters is whole in at least one chunk.
 
 ### Trade-off or status
 
@@ -130,7 +130,7 @@ Use `BM25Okapi` from `rank-bm25` as the keyword retriever and drop hits that sco
 
 BM25 is the standard keyword baseline and catches exact terms such as names and numbers that embeddings can blur. Dropping non-positive scores keeps chunks that share no term with the query out of the fusion.
 
-On tiny corpora the IDF behaves oddly. rank-bm25 computes IDF as log((N - n + 0.5) / (n + 0.5)). In a 2-chunk corpus a term found in one chunk gets IDF 0, so the matching chunk scores 0 and is dropped (`test_two_chunk_corpus_gives_zero_idf` documents this). A term found in more than half the chunks gets a negative raw IDF, which rank-bm25 replaces with a small positive floor (0.25 times the average IDF). For that reason the ranking tests use a 6-chunk corpus in which each rare word appears in exactly one chunk.
+On tiny corpora the IDF behaves oddly. rank-bm25 computes IDF as log((N - n + 0.5) / (n + 0.5)). In a 2-chunk corpus a term found in one chunk gets IDF 0, so the matching chunk scores 0 and is dropped (`test_two_chunk_corpus_gives_zero_idf` documents this). A term found in more than half the chunks gets a negative raw IDF, which rank-bm25 replaces with a small positive floor (0.25 times the average IDF). For that reason the ranking tests use a 6-chunk corpus in which each rare word occurs in exactly one chunk.
 
 ### Trade-off or status
 
@@ -156,7 +156,7 @@ A dot product on unit vectors is the cosine, so one matrix product scores every 
 
 ### Trade-off or status
 
-BM25 is rebuilt on every query; that cost hasn't been measured separately. The saved index takes 3,762,469 bytes (about 3.6 MB). Built and merged.
+BM25 is rebuilt on every query; that cost hasn't been measured separately. The saved index takes 3,762,469 bytes. Built and merged.
 
 ## D08 Hybrid retrieval by reciprocal rank fusion
 
@@ -170,11 +170,11 @@ Merge the BM25 and dense rankings with reciprocal rank fusion (RRF), k = 60, tak
 
 ### How
 
-`RankFuser.fuse` adds weight / (k + rank) for every ranking a chunk appears in, with 1-based ranks. Both weights default to 1.0 (D22). If a chunk appears twice in one ranking, it counts once at its best rank. The sort is stable and the BM25 list is passed first, so equal fused scores keep first-appearance order with BM25 ahead. `HybridRetriever.score_table` records each retriever's own score per chunk key.
+`RankFuser.fuse` adds weight / (k + rank) for every ranking a chunk is in, with 1-based ranks. Both weights default to 1.0 (D22). If a chunk occurs twice in one ranking, it counts once at its best rank. The sort is stable and the BM25 list is passed first, so equal fused scores keep first-appearance order with BM25 ahead. `HybridRetriever.score_table` records each retriever's own score per chunk key.
 
 ### Why
 
-RRF uses only ranks, so it can combine BM25 scores (unbounded) and cosine scores (between -1 and 1) without tuning weights. A chunk ranked first by both retrievers gets 2 / 61, about 0.0328, so fused scores are small and can't be compared with BM25 or cosine scores. That's why `HybridHit` keeps the two original scores, and why the answerer gates on the dense one.
+RRF uses only ranks, so it can combine BM25 scores (unbounded) and cosine scores (between -1 and 1) without tuning weights. A chunk ranked first by both retrievers gets 2 / 61, which is 0.0328 to four decimals, so fused scores are small and can't be compared with BM25 or cosine scores. That's why `HybridHit` keeps the two original scores, and why the answerer gates on the dense one.
 
 ### Trade-off or status
 
@@ -306,7 +306,7 @@ Provide one `mini-rag` command with `ingest`, `query` and `eval` subcommands.
 
 ### Why
 
-One entry point keeps the README short, and returning exit codes from `run()` lets tests call it directly with a fake embedder. Measured once on a CPU, ingest of the corpus took about 160 seconds, and the saved index is about 3.6 MB.
+One entry point keeps the README short, and returning exit codes from `run()` lets tests call it directly with a fake embedder. Measured once on a CPU, ingest of the corpus took 159 s, and the saved index is 3,762,469 bytes.
 
 ### Trade-off or status
 
@@ -346,7 +346,7 @@ Each merged pull request adds one class or command plus the tests for it.
 
 ### How
 
-Pull requests are squash-merged, and commit messages are short bullet points. When a pull request changes behaviour, it updates this file, `docs/flow.md` and the README status diagram in the same pull request.
+Pull requests are squash-merged, and commit messages are short bullet points. When a pull request changes behaviour, it updates this file, `docs/flow.md` and the README status diagram in the same pull request. [CONTRIBUTING.md](../CONTRIBUTING.md) states these rules for outside contributors (D33).
 
 ### Why
 
@@ -370,16 +370,16 @@ An answerable question names its `source_doc` and a `must_contain` phrase copied
 
 `QuestionLoader.load` raises `FileNotFoundError` for a missing file and `ValueError`, with the question id, for a malformed entry or a duplicate id. `QuestionValidator.validate` returns a `ValidationResult` with a list of problems. It compares text after `RelevanceJudge.normalise`, which lowercases and collapses whitespace. The checks and their reasons:
 
-- The `source_doc` must be a loaded document and must contain the phrase. Without that, no chunk could be relevant.
-- The phrase must be 6 to 60 characters on one line. Shorter phrases match by accident, and longer ones might not fit whole in a chunk (D15).
+- The `source_doc` must be a loaded document and must contain the phrase. Without that, no chunk can be relevant.
+- The phrase must be 6 to 60 characters on one line. Shorter phrases match by accident, and longer ones aren't guaranteed to fit whole in a chunk (D15).
 - The phrase must not occur inside the question text, because the question would then hand the answer to keyword search.
-- The phrase may occur in at most 2 documents, so a chunk from an unrelated article rarely counts as relevant. In the current set every phrase occurs in exactly one document.
-- No absent term of an unanswerable question may occur anywhere in the corpus. This confirms the corpus can't answer it.
+- The phrase must occur in at most 2 documents, so a chunk from an unrelated article rarely counts as relevant. In the current set every phrase occurs in exactly one document.
+- An absent term of an unanswerable question must not occur anywhere in the corpus. This confirms the corpus can't answer it.
 - The set needs 24 to 28 answerable and 5 to 7 unanswerable questions, with at least 2 of each topic.
 - The answerable questions must cover at least 14 documents with at most 3 questions each, so no single article dominates.
 - At least 8 answerable questions need an overlap of 0.40 or less, and at least 4 phrases must contain a digit. The first keeps paraphrased questions in the set, and the second keeps numbers and dates in it.
 
-The overlap of a question is the share of its tokens longer than 3 characters that also occur in the source sentence around the phrase. A sentence ends at a full stop followed by whitespace, or at a line break.
+The overlap of a question is the share of its tokens longer than 3 characters that also occur in the source sentence that holds the phrase. A sentence ends at a full stop followed by whitespace, or at a line break.
 
 ### Why
 
@@ -494,7 +494,7 @@ Replace the `eval` placeholder with the real command, add `--brief` to `query`, 
 
 ### How
 
-The `eval` options are `--questions` (default `eval/questions.json`), `--corpus` (`data/corpus`), `--sizes` (`500,1000`), `--overlap` (100), `--gate-top-k` (5), `--cache-dir` (`.cache/eval`), `--out` (`eval/results.md`), `--rebuild` and `--build-only`. With `--build-only`, `Cli.build_only` calls `Evaluator.prepare` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds; it loads no questions and writes no report. If the validator finds problems, `Cli.fail_problems` prints up to 10 of them and the command exits with code 2. `FileNotFoundError` and `ValueError` become an error line with exit code 2. `Cli.query` now also catches the `ValueError` that `DenseIndex.load` raises for a model name mismatch or damaged files (D07). `Cli` passes its embedder to `EvalIndexStore`, so tests run the whole command with a fake embedder. `build_parser` gives the parser and every subparser `argparse.ArgumentDefaultsHelpFormatter`, which appends the default to each option's help text; option names, dest names and defaults didn't change. A test runs `--help` for every command through `Cli.run` and checks that no raw dest name such as `S_INDEX_DIR` appears.
+The `eval` options are `--questions` (default `eval/questions.json`), `--corpus` (`data/corpus`), `--sizes` (`500,1000`), `--overlap` (100), `--gate-top-k` (5), `--cache-dir` (`.cache/eval`), `--out` (`eval/results.md`), `--rebuild` and `--build-only`. With `--build-only`, `Cli.build_only` calls `Evaluator.prepare` for each size and prints the chunk count, whether the index was built or loaded, and the elapsed seconds; it loads no questions and writes no report. If the validator finds problems, `Cli.fail_problems` prints up to 10 of them and the command exits with code 2. `FileNotFoundError` and `ValueError` become an error line with exit code 2. `Cli.query` now also catches the `ValueError` that `DenseIndex.load` raises for a model name mismatch or damaged files (D07). `Cli` passes its embedder to `EvalIndexStore`, so tests run the whole command with a fake embedder. `build_parser` gives the parser and every subparser `argparse.ArgumentDefaultsHelpFormatter`, which appends the default to each option's help text; option names, dest names and defaults didn't change. A test runs `--help` for every command through `Cli.run` and checks that no raw dest name such as `S_INDEX_DIR` is printed.
 
 ### Why
 
@@ -520,7 +520,7 @@ A chunk's fused score is the sum of weight / (k + rank) over the rankings that c
 
 ### Why
 
-A review raised this hypothesis: at k = 60 with 20 candidates per list, a chunk found by both retrievers always outranks a chunk found by one, so a dense-only first hit can be pushed down. The arithmetic agrees, since a chunk in both lists scores at least 2/80 = 0.025 and a chunk in one list at most 1/61, about 0.0164. The trace of q21 at size 500 with the defaults confirms it on real data:
+A review raised this hypothesis: at k = 60 with 20 candidates per list, a chunk found by both retrievers always outranks a chunk found by one, so a dense-only first hit can be pushed down. The arithmetic agrees, since a chunk in both lists scores at least 2/80 = 0.025 and a chunk in one list at most 1/61, which is 0.0164 to four decimals. The trace of q21 at size 500 with the defaults confirms it on real data:
 
 | Hybrid rank | Chunk | Dense rank | BM25 rank | Fused score | Relevant |
 |---|---|---|---|---|---|
@@ -542,7 +542,7 @@ Built. The defaults were kept. No grid setting beat the default by more than 2 q
 - At size 1000 the best settings reach 23/25, one question more than the default's 22/25.
 - Fusion settings don't change the gate. Every setting accepts 3 of the 6 unanswerable questions at threshold 0.60, at both sizes.
 
-On this question set dense alone is as good as hybrid. That may not hold for other corpora or for keyword-heavy questions, where BM25 has more to add.
+On this question set dense alone is as good as hybrid. No other corpus and no keyword-heavy question set was tested, so the result doesn't cover the cases in which BM25 has more to add.
 
 ## D23 Threshold decision
 
@@ -589,7 +589,7 @@ Every command accepts `--config PATH`, before or after the command name, and rea
 
 ### How
 
-`RagConfig` is a frozen dataclass whose field defaults are today's values. The fusion defaults come from `HybridRetriever`'s constants, and a test checks that the threshold, model names and fusion values match the classes that use them. `ConfigLoader.load` parses the file with `tomllib` from the standard library and maps each key onto a field through one schema table. It raises `ValueError` naming the key for a wrong type, an unknown key or section, an unknown embedder or generator kind, and invalid TOML. A whole number is accepted where a decimal is expected. A missing default file gives the defaults, while a missing file named with `--config` is an error. `Cli.build_parser` takes the config's values as the option defaults, so an option typed on the command line wins. Tests cover each precedence level, on the parser and once end to end.
+`RagConfig` is a frozen dataclass whose field defaults are today's values. The fusion defaults come from `HybridRetriever`'s constants, and a test checks that the threshold, model names and fusion values match the classes that use them. `ConfigLoader.load` parses the file with `tomllib` from the standard library and maps each key onto a field through one schema table. It raises `ValueError` naming the key for a wrong type, a key or section outside the schema, an embedder or generator kind outside the allowed list, and invalid TOML. A whole number is accepted where a decimal is expected. A missing default file gives the defaults, while a missing file named with `--config` is an error. `Cli.build_parser` takes the config's values as the option defaults, so an option typed on the command line wins. Tests cover each precedence level, on the parser and once end to end.
 
 ### Why
 
@@ -611,7 +611,7 @@ Define abstract base classes for the embedding model and the answer-writing mode
 
 ### How
 
-`Embedder` declares `embed`, `query_embed` and the property `s_name`; `Generator` declares `generate` and `s_name`. `FastEmbedEmbedder`, `LlmClient` and the test doubles subclass them with no change in behaviour. `ComponentFactory.embedder` checks a fastembed model name against `TextEmbedding.list_supported_models()`, which works offline and lists 41 models in the installed fastembed 0.9.1, and rejects an unknown name with the command that prints the list. For a custom kind, and only then, it appends the working directory to the end of the import path, so installed modules keep priority; a test checks that the other kinds leave the path unchanged. It then imports the class with `importlib`, checks the base class with `issubclass`, and reports an import failure, a wrong base class or unusable options as `ValueError` naming the key. `ingest` saves the embedder's `s_name` as the index's model name, and `DenseIndex.load` refuses an index saved under another name with a message that says to run ingest again. `FastEmbedEmbedder` loads its model on the first `embed` or `query_embed` call, not in its constructor, so reading `s_name` loads nothing and `query` compares the saved name before any fastembed model is loaded or downloaded. A test replaces fastembed's `TextEmbedding` with a recorder and checks that a refused query records no load. A custom embedder is still built before the check, so its constructor runs. `EvalIndexStore` stores the same name in `meta.json`, so an eval cache from another embedder is rebuilt. A generator of any kind that fails during a query prints a note with the error's type and message and shows the extractive answer. That replaced the earlier behaviour, in which API errors propagated and stopped the query. The note shows the library's own error text without filtering it, so don't paste it into a public issue.
+`Embedder` declares `embed`, `query_embed` and the property `s_name`; `Generator` declares `generate` and `s_name`. `FastEmbedEmbedder`, `LlmClient` and the test doubles subclass them with no change in behaviour. `ComponentFactory.embedder` checks a fastembed model name against `TextEmbedding.list_supported_models()`, which works offline and lists 41 models in the installed fastembed 0.9.1, and rejects a name not on that list with the command that prints the list. For a custom kind, and only then, it appends the working directory to the end of the import path, so installed modules keep priority; a test checks that the other kinds leave the path unchanged. It then imports the class with `importlib`, checks the base class with `issubclass`, and reports an import failure, a wrong base class or unusable options as `ValueError` naming the key. `ingest` saves the embedder's `s_name` as the index's model name, and `DenseIndex.load` refuses an index saved under another name with a message that says to run ingest again. `FastEmbedEmbedder` loads its model on the first `embed` or `query_embed` call, not in its constructor, so reading `s_name` loads nothing and `query` compares the saved name before any fastembed model is loaded or downloaded. A test replaces fastembed's `TextEmbedding` with a recorder and checks that a refused query records no load. A custom embedder is still built before the check, so its constructor runs. `EvalIndexStore` stores the same name in `meta.json`, so an eval cache from another embedder is rebuilt. A generator of any kind that fails during a query prints a note with the error's type and message and shows the extractive answer. That replaced the earlier behaviour, in which API errors propagated and stopped the query. The note shows the library's own error text without filtering it, so don't paste it into a public issue.
 
 ### Why
 
@@ -619,7 +619,7 @@ The base classes state what a replacement must provide, and the name check stops
 
 ### Trade-off or status
 
-Built. Measured with `examples/custom.toml` on the included corpus: ingest embedded 1,741 chunks in under a second without fastembed, and "What is a tokamak?" got a best dense score of 0.446, so the shipped threshold of 0.55 reports it as not found. A custom class is ordinary Python run inside the process, so a config should only name code you trust.
+Built. Measured with `examples/custom.toml` on the included corpus: ingest embedded 1,741 chunks in under a second without fastembed, and "What is a tokamak?" got a best dense score of 0.446, so the shipped threshold of 0.55 reports it as not found. A custom class is ordinary Python run inside the process, so a config must name only code you trust.
 
 ## D26 OpenAI-compatible client
 
@@ -695,7 +695,7 @@ Test the project from a fresh clone, as a new user would meet it, and correct wh
 
 ### What it does
 
-The test cloned the repository from GitHub on Windows with a cold uv cache and no model cache, then ran the README and make-your-own steps. The numbers below were measured once on one machine and depend on the CPU and the network. All 20 corpus SHA-256 values matched, and no corpus file contained a carriage return. `uv sync` took 16.8 s and installed 36 packages. The test run gave 321 passed, 1 deselected. The first `ingest` took 172 s for 20 documents and 1,741 chunks; the model download was about 6 s of that, and the model folder was 64.1 MB. A query took about 4.5 s. `eval --build-only` took 322.9 s (156.1 s and 161.4 s per chunk size). `eval` took 11.0 s, and its report differed from the committed one only in the date line. `calibrate` took about 5 s. Swapping to `minishlab/potion-base-8M` (256 dimensions, 29.5 MB) worked, with the calibration result given in make-your-own.md. The OpenAI-compatible client was checked only against a local stand-in server written from the same assumptions as the client, not against a real server.
+The test cloned the repository from GitHub on Windows with a cold uv cache and no model cache, then ran the README and make-your-own steps. The numbers below were measured once on one machine and depend on the CPU and the network. All 20 corpus SHA-256 values matched, and no corpus file contained a carriage return. `uv sync` took 16.8 s and installed 36 packages. The test run gave 321 passed, 1 deselected. The first `ingest` took 172 s for 20 documents and 1,741 chunks; the model download was 6 s of that, and the model folder was 64.1 MB. A query took 4.5 s. `eval --build-only` took 322.9 s (156.1 s and 161.4 s per chunk size). `eval` took 11.0 s, and its report differed from the committed one only in the date line. `calibrate` took 5 s. The download, query and calibrate times were written down rounded, to one or two significant figures. Swapping to `minishlab/potion-base-8M` (256 dimensions, 29.5 MB) worked, with the calibration result given in make-your-own.md. The OpenAI-compatible client was checked only against a local stand-in server written from the same assumptions as the client, not against a real server.
 
 ### How
 
@@ -707,7 +707,7 @@ The project is also a template, so its documentation has to work for someone who
 
 ### Trade-off or status
 
-The test found eight documentation discrepancies, now corrected in the README and make-your-own.md. It also found that `query` downloaded a newly configured model before it refused the old index. `FastEmbedEmbedder` now loads its model on first use, so the name check comes first (D25). The third finding was `--help` output that showed dest names such as `S_INDEX_DIR` and no option help. Every option now has help text and a lowercase metavar (D21). A single run on one machine says nothing about other systems.
+The test found eight documentation discrepancies, now corrected in the README and make-your-own.md. It also found that `query` downloaded a newly configured model before it refused the old index. `FastEmbedEmbedder` now loads its model on first use, so the name check comes first (D25). The third finding was `--help` output that showed dest names such as `S_INDEX_DIR` and no option help. Every option now has help text and a lowercase metavar (D21). The test ran once, on one Windows machine, and no other system was tested.
 
 ## D30 Generator default
 
@@ -751,3 +751,46 @@ Table 1 of `eval/results.md` shows dense ahead of hybrid on hit@5 at chunk size 
 ### Trade-off or status
 
 Built. In bm25 mode the gate can't reject an off-topic question that shares one word with the corpus: "Who won the 1998 football World Cup?" returns 5 BM25 hits on the included corpus and counts as found. Measured on the included corpus with the shipped settings, "What is a tokamak?" has top hit `[tokamak#0]` (dense 0.880) in dense mode and `[stellarator#36]` (BM25 9.617) in bm25 mode.
+## D32 Determinism rule for documentation
+
+### Decision
+
+Every statement in the README, `docs/make-your-own.md`, `CONTRIBUTING.md`, the issue templates, the comments in `mini-rag.toml` and `examples/*.toml`, and the help and note strings in `cli.py` is an instruction with the exact command, a fact with its exact number and conditions, or an exact statement of what was and wasn't tested.
+
+### What it does
+
+The rule's list of hedging and approximating words isn't used in those files outside program output, code and corpus text. A limitation isn't deleted; it's rewritten as what was tested and what wasn't. Requirements use "must", and results are given as the expected output. The sentences in this file and in `docs/flow.md` that state behaviour follow the same rule; the reasons in the Why sections are kept as they were written.
+
+### How
+
+A search for the listed words over those files counts the hits per file, and each hit is rewritten. Numbers come from the code, the config, a test, `eval/results.md`, `data/corpus/SOURCES.md` or a measurement recorded in this file. A recorded measurement that was written down rounded says so, as in D29.
+
+### Why
+
+A reader of a template copies its numbers into their own decisions. A hedged sentence can't be checked, while a number with its conditions can be compared with the reader's own run.
+
+### Trade-off or status
+
+Applied to the files above. Sentences become longer where a rounded figure is replaced by its exact value and conditions.
+
+## D33 Contribution process
+
+### Decision
+
+A contribution starts with an issue, continues with a pull request that carries its tests and documentation updates, and ends with a squash merge.
+
+### What it does
+
+`CONTRIBUTING.md` lists the steps and rules, and `.github/ISSUE_TEMPLATE` holds a Bug report and a Feature request template. The squash-merge commit message is built from the pull request's title and description: a one-line title and a bulleted description of at most 50 words with no template text. A contribution is licensed under the repository's MIT License.
+
+### How
+
+The issue templates have front matter with `name` and `about` only. There is no pull request template. No continuous-integration workflow is included; contributors run `uv run pytest` locally, and the expected output ends with `368 passed, 1 deselected`. A change to a default value must show a gain of more than 2 questions on hit@5 at both chunk sizes (D22), and a new dependency needs an entry in this file.
+
+### Why
+
+An issue first lets a change be discussed before code is written. A pull request template would put its template text into the squash-merge commit message, so the format is described in `CONTRIBUTING.md` instead.
+
+### Trade-off or status
+
+Built. Without continuous integration, nothing checks a pull request automatically; the reviewer runs the tests.
