@@ -178,7 +178,7 @@ RRF uses only ranks, so it can combine BM25 scores (unbounded) and cosine scores
 
 ### Trade-off or status
 
-A chunk outside a retriever's 20 candidates has `None` for that score, which means "not retrieved", not "score 0". Built. A grid of 12 fusion settings was measured later and the defaults of k = 60 and equal weights were kept (D22). With those defaults and 20 candidates per list, a chunk found by both retrievers always outranks a chunk found by one, which can push a dense-only first hit down the list.
+A chunk outside a retriever's 20 candidates has `None` for that score, which means "not retrieved", not "score 0". Built. A grid of 12 fusion settings was measured later and the defaults of k = 60 and equal weights were kept (D22). With those defaults and 20 candidates per list, a chunk found by both retrievers always outranks a chunk found by one, which can push a dense-only first hit down the list. Hybrid is the default `[retrieval] mode`; dense and bm25 modes skip the fusion, and the fusion settings apply to hybrid mode only (D31).
 
 ## D09 Answerer gate
 
@@ -200,7 +200,7 @@ Cosine scores have a fixed range and mean the same thing from query to query, wh
 
 ### Trade-off or status
 
-The eval's threshold sweep counts both kinds of error at each threshold (D19), and the default was set to 0.55 from it (D23). With that default the World Cup question above is reported as not found. Because the gate reads the best score among the returned hits, a larger `--top-k` can turn "not found" into "found". The gate is built.
+The eval's threshold sweep counts both kinds of error at each threshold (D19), and the default was set to 0.55 from it (D23). With that default the World Cup question above is reported as not found. Because the gate reads the best score among the returned hits, a larger `--top-k` can turn "not found" into "found". The gate is built. In dense mode it reads the dense hits the same way. In bm25 mode no hit has a dense score, so `Answerer` is built with `b_gate_on_dense=False`: the threshold is not applied and any hit counts as found (D31).
 
 ## D10 Opt-in generation
 
@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 349 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 368 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -502,7 +502,7 @@ Validating first means a broken question set stops the run before any ranking. `
 
 ### Trade-off or status
 
-Built. `--brief` shortens only the hit list; the extractive answer below it still prints the full chunk texts.
+Built. `--brief` shortens only the hit list; the extractive answer below it still prints the full chunk texts. `query` and `calibrate` later gained `--mode` with the choices `hybrid`, `dense` and `bm25`, and the fused column prints `-` when a mode fuses nothing (D31).
 
 ## D22 Fusion tuning
 
@@ -730,3 +730,24 @@ A model name in the shipped config goes out of date when the provider retires th
 ### Trade-off or status
 
 Built. A user who wants generation edits two lines and supplies a model name. Before this change the shipped kind was `"anthropic"` with a fixed model name, so `--generate` printed the missing-key note when `ANTHROPIC_API_KEY` was unset.
+## D31 Retrieval mode
+
+### Decision
+
+Add `[retrieval] mode` with the values `"hybrid"` (default), `"dense"` and `"bm25"`, and a `--mode` option on `query` and `calibrate`. The option beats the config file, and the config file beats the built-in default.
+
+### What it does
+
+Hybrid mode runs the existing `HybridRetriever` unchanged, so its output is digit for digit what it was. Dense mode returns the dense hits by cosine score, and bm25 mode returns the BM25 hits by BM25 score. Both print `-` in the fused column. In bm25 mode the threshold is not applied, an answer counts as found when at least one hit exists, and `query` prints a note saying so before the answer. `calibrate` takes its best dense scores from the hybrid hits in hybrid mode and from the top `top_k` dense hits in dense mode. In bm25 mode it prints `error: calibrate needs a dense score; set [retrieval] mode to hybrid or dense` and exits with code 2. `eval` doesn't read the mode: it compares all three methods and sweeps on the hybrid hits, as before. `ingest` doesn't read it either.
+
+### How
+
+`ConfigLoader.check_retrieval_mode` raises `ValueError` naming `[retrieval] mode` and the allowed values. `ComponentFactory.retriever` builds `HybridRetriever`, `DenseOnlyRetriever` or `Bm25OnlyRetriever`. It builds the BM25 index only in hybrid and bm25 modes, and passes `rrf_k` and the weights to hybrid only. `HybridHit.f_rrf_score` is `float | None`. `Answerer` takes `b_gate_on_dense` (default `True`), and the CLI sets it to `False` in bm25 mode. `DenseMethod.hits` returns dense hits as `HybridHit` objects, and `Evaluator` takes `s_gate_mode` (`"hybrid"` by default, or `"dense"`), which picks the hits `best_dense` reads. Bm25 mode loads the saved index for its chunks, but `FastEmbedEmbedder` loads its model only on first use (D25), so no model is loaded and the question is never embedded. `tests\test_retrieval_mode.py` checks that with a recorder in place of fastembed's model class.
+
+### Why
+
+Table 1 of `eval/results.md` shows dense ahead of hybrid on hit@5 at chunk size 500 (21 against 19 of 25) and hybrid ahead at chunk size 1000 (22 against 21). A user of the template can compare the three methods on their own questions and pick one without editing code. Hybrid stays the default (D22).
+
+### Trade-off or status
+
+Built. In bm25 mode the gate can't reject an off-topic question that shares one word with the corpus: "Who won the 1998 football World Cup?" returns 5 BM25 hits on the included corpus and counts as found. Measured on the included corpus with the shipped settings, "What is a tokamak?" has top hit `[tokamak#0]` (dense 0.880) in dense mode and `[stellarator#36]` (BM25 9.617) in bm25 mode.

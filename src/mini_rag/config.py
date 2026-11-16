@@ -11,6 +11,7 @@ class RagConfig:
 
   T_EMBEDDER_KINDS = ("fastembed", "custom")
   T_GENERATOR_KINDS = ("anthropic", "openai_compatible", "none", "custom")
+  T_RETRIEVAL_MODES = ("hybrid", "dense", "bm25")
 
   # [corpus]
   s_corpus_dir: str = "data/corpus"
@@ -25,7 +26,8 @@ class RagConfig:
   d_embedder_options: dict = field(default_factory=dict)
   # [index]
   s_index_dir: str = ".cache/index"
-  # [retrieval]
+  # [retrieval]; rrf_k and the weights apply to mode "hybrid" only
+  s_retrieval_mode: str = "hybrid"
   i_top_k: int = 5
   i_rrf_k: int = HybridRetriever.I_DEFAULT_K
   f_bm25_weight: float = HybridRetriever.F_DEFAULT_BM25_WEIGHT

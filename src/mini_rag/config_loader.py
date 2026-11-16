@@ -21,7 +21,7 @@ class ConfigLoader:
     },
     "index": {"dir": ("s_index_dir", "str")},
     "retrieval": {
-      "top_k": ("i_top_k", "int"), "rrf_k": ("i_rrf_k", "int"),
+      "mode": ("s_retrieval_mode", "str"), "top_k": ("i_top_k", "int"), "rrf_k": ("i_rrf_k", "int"),
       "bm25_weight": ("f_bm25_weight", "float"), "dense_weight": ("f_dense_weight", "float"),
     },
     "gate": {"threshold": ("f_threshold", "float")},
@@ -65,7 +65,15 @@ class ConfigLoader:
     self.check_kind("embedder.kind", obj_config.s_embedder_kind, RagConfig.T_EMBEDDER_KINDS)
     self.check_kind("generator.kind", obj_config.s_generator_kind, RagConfig.T_GENERATOR_KINDS)
     self.check_generator_model(obj_config)
+    self.check_retrieval_mode(obj_config.s_retrieval_mode)
     return obj_config
+
+  def check_retrieval_mode(self, s_mode: str) -> None:
+    """Raise ValueError naming [retrieval] mode and the allowed values when the mode is not one of them."""
+    if s_mode not in RagConfig.T_RETRIEVAL_MODES:
+      raise ValueError(
+        f"[retrieval] mode must be one of {', '.join(RagConfig.T_RETRIEVAL_MODES)}, got {s_mode!r}"
+      )
 
   def convert(self, s_full_key: str, obj_value: object, s_type: str) -> object:
     """Return the value in the field's type; raise ValueError naming the key for a wrong type."""

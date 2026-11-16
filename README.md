@@ -100,6 +100,7 @@ Query options:
 - `--threshold F` sets the dense score the best hit must reach to count as found (default 0.55, allowed range -1.0 to 1.0). The best dense score among the hits above is 0.528, so the default reports the question as not found. That's the right result, because no article in the corpus mentions the World Cup. With `--threshold 0.5` the same question is answered.
 - `--generate` asks a language model to write the answer from the retrieved chunks.
 - `--brief` cuts each hit's text to 160 characters and adds `...` when it was cut. The extractive answer below the hits is still printed in full.
+- `--mode MODE` picks the retrieval mode: `hybrid` (default), `dense` or `bm25`. Dense and bm25 modes print `-` in the fused column. In bm25 mode the threshold isn't applied, and a note says so. `calibrate` takes the same option. The mode is set under `[retrieval] mode` in `mini-rag.toml`, and `--mode` overrides it; [docs/make-your-own.md](docs/make-your-own.md#choose-a-retrieval-mode) compares the modes.
 
 Generation is off by default. Without `--generate` the answer is extractive: the retrieved chunk texts under their markers. The shipped `mini-rag.toml` sets `[generator] kind = "none"`, so `--generate` prints `note: no generator is configured ([generator] kind is "none"); showing the extractive answer` and then the extractive answer.
 

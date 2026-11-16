@@ -22,16 +22,21 @@ class Evaluator:
   """Compares BM25, dense and hybrid retrieval per chunk size and sweeps the gate threshold."""
 
   T_KS = (1, 3, 5)
+  T_GATE_MODES = ("hybrid", "dense")  # retrieval modes whose hits carry a dense score
 
   def __init__(
     self, obj_store: EvalIndexStore, l_sizes: list[int] | tuple[int, ...] = (500, 1000), i_overlap: int = 100,
     i_depth: int = 10, i_gate_top_k: int = 5, obj_sweeper: ThresholdSweeper | None = None,
-    l_fusion_settings: list[FusionSetting] | None = None,
+    l_fusion_settings: list[FusionSetting] | None = None, s_gate_mode: str = "hybrid",
   ) -> None:
     """Store the index store, the chunk sizes, the ranking depth, the gate's top-k and the fusion settings.
 
     l_fusion_settings lists the settings hybrid is evaluated with; None means the retriever's defaults only.
+    s_gate_mode picks the hits the best dense score is taken from: "hybrid" (fused hits) or "dense".
     """
+    if s_gate_mode not in self.T_GATE_MODES:
+      raise ValueError(f"s_gate_mode must be one of {', '.join(self.T_GATE_MODES)}, got {s_gate_mode!r}")
+    self.s_gate_mode = s_gate_mode
     if not l_sizes:
       raise ValueError("l_sizes must name at least one chunk size")
     if i_depth < 1:
@@ -101,8 +106,9 @@ class Evaluator:
   ) -> FusionResult:
     """Evaluate hybrid under one fusion setting, then sweep the gate over all questions."""
     obj_hybrid = self.hybrid_method(obj_bundle, obj_setting)
+    obj_gate = obj_hybrid if self.s_gate_mode == "hybrid" else self.gate_method(obj_bundle, obj_setting)
     d_best_dense = {
-      obj_question.s_id: self.best_dense(obj_hybrid, obj_question) for obj_question in l_questions
+      obj_question.s_id: self.best_dense(obj_gate, obj_question) for obj_question in l_questions
     }
     l_sweep_rows = self.obj_sweeper.sweep(
       [d_best_dense[obj_question.s_id] for obj_question in l_questions if obj_question.b_answerable],
@@ -119,6 +125,12 @@ class Evaluator:
       obj_bundle.obj_bm25, obj_bundle.obj_dense, i_k=obj_setting.i_k,
       f_bm25_weight=obj_setting.f_bm25_weight, f_dense_weight=obj_setting.f_dense_weight,
     ))
+
+  def gate_method(self, obj_bundle: IndexBundle, obj_setting: FusionSetting) -> HybridMethod | DenseMethod:
+    """Return the method whose hits give the best dense score: hybrid with the setting, or dense alone."""
+    if self.s_gate_mode == "dense":
+      return DenseMethod(obj_bundle.obj_dense)
+    return self.hybrid_method(obj_bundle, obj_setting)
 
   def main_fusion(self, l_fusion_results: list[FusionResult]) -> FusionResult:
     """Return the result of the retriever's default setting if it was evaluated, otherwise the first one."""
@@ -148,10 +160,10 @@ class Evaluator:
       d_found_at_k={i_k: sum(l_flags[:i_k]) for i_k in self.T_KS},
     )
 
-  def best_dense(self, obj_hybrid: HybridMethod, obj_question: Question) -> float | None:
-    """Return the highest dense score among the gate's hybrid hits, or None if none has one."""
+  def best_dense(self, obj_method: HybridMethod | DenseMethod, obj_question: Question) -> float | None:
+    """Return the highest dense score among the gate's hits from obj_method, or None if none has one."""
     l_scores = [
-      obj_hit.f_dense_score for obj_hit in obj_hybrid.hits(obj_question.s_text, self.i_gate_top_k)
+      obj_hit.f_dense_score for obj_hit in obj_method.hits(obj_question.s_text, self.i_gate_top_k)
       if obj_hit.f_dense_score is not None
     ]
     return max(l_scores) if l_scores else None

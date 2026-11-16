@@ -96,9 +96,23 @@ A good unanswerable question has a `topic` of `on_topic` (about your subject, bu
 
 When the set is large enough, `uv run mini-rag eval` compares BM25, dense and hybrid search at the chunk sizes in `[eval] sizes` and writes `eval/results.md`.
 
+## Choose a retrieval mode
+
+`[retrieval] mode` sets how `query` and `calibrate` search: `"hybrid"` (the default), `"dense"` or `"bm25"`. The `--mode` option overrides it for one command, for example `uv run mini-rag query "What is a tokamak?" --mode dense`.
+
+- Table 1 of the report that `uv run mini-rag eval` writes compares BM25, dense and hybrid search on your questions. Read it before you change the mode.
+- The mode changes `query` and `calibrate` only. `eval` always reports all three methods and takes its threshold sweep from the hybrid hits.
+- `ingest` builds the same index in every mode, so a mode change needs no new ingest.
+- `rrf_k`, `bm25_weight` and `dense_weight` apply to hybrid mode only.
+- In hybrid mode the gate compares the best dense score among the fused hits with the threshold.
+- In dense mode the gate compares the best dense score among the dense hits with the threshold.
+- In bm25 mode no hit has a dense score, so the threshold isn't applied. The answer counts as found when at least one chunk shares a term with the question, and `query` prints a note saying so. The question is never embedded, and `calibrate` stops with exit code 2.
+
+In bm25 mode the question "Who won the 1998 football World Cup?" returns 5 BM25 hits on the included corpus, so the gate can't reject it. In hybrid mode the same question is reported as not found.
+
 ## How to read the calibration table
 
-`calibrate` uses the configured embedder, chunk size, overlap, fusion settings and `top_k`. It uses only the chunk size in `[chunking]`, not the sizes in `[eval] sizes`. For each question it takes the best dense score among the top hits, then counts two kinds of error at each threshold, in steps of 0.05 across the range of the measured scores. "Answerable rejected" counts questions the corpus answers that the threshold would turn away. "Unanswerable accepted" counts questions it can't answer that would get through. The line under the table names the thresholds with the fewest total errors, and the suggested config line uses the lowest of them.
+`calibrate` uses the configured embedder, chunk size, overlap, fusion settings, `top_k` and retrieval mode. It uses only the chunk size in `[chunking]`, not the sizes in `[eval] sizes`. For each question it takes the best dense score among the top hits (the fused hits in hybrid mode, the dense hits in dense mode), then counts two kinds of error at each threshold, in steps of 0.05 across the range of the measured scores. "Answerable rejected" counts questions the corpus answers that the threshold would turn away. "Unanswerable accepted" counts questions it can't answer that would get through. The line under the table names the thresholds with the fewest total errors, and the suggested config line uses the lowest of them.
 
 Look at more than the lowest total. When two thresholds tie, the lower one rejects fewer real answers, and its distance above the lowest answerable score tells you how much room it leaves for new questions. The included set went through this: 0.55 and 0.60 tied at 3 errors, and 0.55 was kept for its larger margin (decision D23 in [decisions.md](decisions.md)).
 

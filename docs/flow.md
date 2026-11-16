@@ -34,7 +34,7 @@ flowchart TD
   class testset,evaluator,metrics,results done
 ```
 
-Legend: green means built and merged, yellow means not built yet. The dotted lines show that both searches read the saved index.
+Legend: green means built and merged, yellow means not built yet. The dotted lines show that both searches read the saved index. The RankFuser step runs in hybrid mode only: dense mode skips BM25 search, and bm25 mode skips dense search (D31).
 
 ## Configuration
 
@@ -59,13 +59,13 @@ Finally, `Cli.ingest` prints the counts, the settings, the index folder and the 
 `uv run mini-rag query "<question>"` calls `Cli.query`:
 
 1. `DenseIndex.load()` reads `.cache/index` and checks the 2-D shape, the row count and the saved embedder name against the configured embedder's `s_name`. A different name stops the query with a message that asks for a new `ingest`.
-2. `Bm25Index.build()` rebuilds the keyword index from the loaded chunks. It isn't saved separately.
-3. `Answerer(f_threshold)` is created before searching, so an invalid `--threshold` fails early.
-4. `HybridRetriever.search(question, top_k)` asks each index for `max(20, top_k)` candidates: `Bm25Index.search()` tokenises the question with `Tokenizer` and keeps hits with a positive score, and `DenseIndex.search()` embeds the question with `query_embed()` and ranks every chunk by cosine score.
+2. `ComponentFactory.retriever()` builds the retriever for `[retrieval] mode`, or for `--mode` when it's given. In hybrid and bm25 modes `Bm25Index.build()` rebuilds the keyword index from the loaded chunks. It isn't saved separately. Dense mode builds no BM25 index.
+3. `Answerer(f_threshold, b_gate_on_dense=...)` is created before searching, so an invalid `--threshold` fails early. `b_gate_on_dense` is `False` in bm25 mode and `True` otherwise.
+4. `HybridRetriever.search(question, top_k)` asks each index for `max(20, top_k)` candidates: `Bm25Index.search()` tokenises the question with `Tokenizer` and keeps hits with a positive score, and `DenseIndex.search()` embeds the question with `query_embed()` and ranks every chunk by cosine score. In dense mode `DenseOnlyRetriever.search()` returns the top `top_k` dense hits instead, and in bm25 mode `Bm25OnlyRetriever.search()` returns the top `top_k` BM25 hits without embedding the question. Both skip step 5 and leave the fused score `None`.
 5. `RankFuser.fuse()` merges the two lists with weighted reciprocal rank fusion. Each list has a weight, `f_bm25_weight` and `f_dense_weight` on `HybridRetriever`, and a chunk's fused score is the sum of weight / (60 + rank) over the lists that contain it. Both weights default to 1.0, which gives plain reciprocal rank fusion. `HybridRetriever` then attaches each chunk's own dense and BM25 score and keeps the first `top_k` hits as `HybridHit` objects.
-6. `Cli.print_hit()` prints every hit with its marker and its three scores.
+6. `Cli.print_hit()` prints every hit with its marker and its three scores, with `-` for a missing score. In bm25 mode `Cli.query` then prints a note that the threshold isn't applied.
 7. `Cli.answer()` picks the answerer. With `--generate`, `Cli.make_client()` asks `ComponentFactory.generator()` for the configured client. For kind `anthropic` it first checks that `ANTHROPIC_API_KEY` is set, and for kind `none`, the default, it prints that no generator is configured and returns no client. Without a client, or when the client fails, the extractive answerer is used and a note is printed.
-8. `Answerer.answer()` applies the gate in `is_found()`. If the best dense score among the hits is below the threshold, the result is "Not found in the corpus." Otherwise `format_sources()` builds the extractive answer, or `LlmClient.generate()` writes one from the same sources.
+8. `Answerer.answer()` applies the gate in `is_found()`. If the best dense score among the hits is below the threshold, the result is "Not found in the corpus." In bm25 mode `is_found()` skips the threshold and returns `True` when at least one hit exists. Otherwise `format_sources()` builds the extractive answer, or `LlmClient.generate()` writes one from the same sources.
 9. `Cli.print_answer()` prints the answer text and a line such as `found: yes, written by a model: no`.
 
 ## 3. Eval
@@ -104,7 +104,7 @@ All are frozen dataclasses except `EvalResult` and the `SizeResult` objects it h
 | `Document` | `s_doc_id: str`, `s_text: str` | `Loader` | One corpus file. The id is the file name stem, such as `tokamak`. |
 | `Chunk` | `s_doc_id: str`, `i_index: int`, `i_start: int`, `s_text: str` | `Chunker` | A slice of a document. `i_index` is its position within the document, and `i_start` is its character offset. Its identity is `(s_doc_id, i_index)`. |
 | `SearchHit` | `obj_chunk: Chunk`, `f_score: float` | `Bm25Index`, `DenseIndex` | One result from a single retriever, with that retriever's score. |
-| `HybridHit` | `obj_chunk: Chunk`, `f_rrf_score: float`, `f_dense_score: float \| None`, `f_bm25_score: float \| None` | `HybridRetriever` | One fused result. A score is `None` when that retriever didn't return the chunk among its candidates. |
+| `HybridHit` | `obj_chunk: Chunk`, `f_rrf_score: float \| None`, `f_dense_score: float \| None`, `f_bm25_score: float \| None` | `HybridRetriever`, `DenseOnlyRetriever`, `Bm25OnlyRetriever` | One result. A score is `None` when that retriever didn't return the chunk among its candidates. `f_rrf_score` is `None` in dense and bm25 modes, which fuse nothing. |
 | `Answer` | `s_text: str`, `l_sources: list[Chunk]`, `b_found: bool`, `b_generated: bool` | `Answerer` | The final answer. `l_sources` is empty when nothing was found, and `b_generated` is `True` only when a model wrote `s_text`. |
 | `Question` | `s_id: str`, `s_text: str`, `b_answerable: bool`, `s_source_doc: str`, `s_must_contain: str`, `t_absent_terms: tuple[str, ...]`, `s_topic: str` | `QuestionLoader` | One eval question. Answerable questions fill `s_source_doc` and `s_must_contain`; unanswerable ones fill `t_absent_terms` and `s_topic`. Unused fields are `""` or an empty tuple. |
 | `QuestionOutcome` | `s_id: str`, `i_first_rank: int \| None`, `i_total_relevant: int`, `d_found_at_k: dict[int, int]` | `Evaluator` | How one method did on one answerable question. `i_first_rank` is 1-based and `None` when no relevant chunk was in the top 10. `d_found_at_k` counts the relevant chunks in the top 1, 3 and 5. |

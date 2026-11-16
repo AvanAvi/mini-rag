@@ -17,7 +17,8 @@ model = "BAAI/bge-small-en-v1.5"  # a model name fastembed supports
 dir = ".cache/index"           # where ingest saves the index that query loads
 
 [retrieval]
-top_k = 5                      # fused hits returned per question
+mode = "hybrid"                # "hybrid", "dense" or "bm25"; used by query and calibrate, --mode overrides it
+top_k = 5                     # fused hits returned per question
 rrf_k = 60                     # constant k of reciprocal rank fusion
 bm25_weight = 1.0              # weight of the keyword ranking in the fusion
 dense_weight = 1.0             # weight of the embedding ranking in the fusion

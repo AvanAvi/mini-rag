@@ -4,15 +4,19 @@ import importlib
 import os
 import sys
 
+from mini_rag.bm25_index import Bm25Index
+from mini_rag.bm25_only_retriever import Bm25OnlyRetriever
 from mini_rag.config import RagConfig
+from mini_rag.dense_only_retriever import DenseOnlyRetriever
 from mini_rag.embedder import Embedder
 from mini_rag.generator import Generator
+from mini_rag.hybrid_retriever import HybridRetriever
 from mini_rag.llm_client import LlmClient
 from mini_rag.openai_compatible_client import OpenAiCompatibleClient
 
 
 class ComponentFactory:
-  """Turns the [embedder] and [generator] sections of a config into objects."""
+  """Turns the [embedder], [retrieval] and [generator] sections of a config into objects."""
 
   S_LIST_MODELS_HINT = (
     'python -c "from fastembed import TextEmbedding; '
@@ -52,6 +56,24 @@ class ComponentFactory:
         self.obj_config.s_generator_api_key_env,
       )
     return LlmClient(s_model=self.obj_config.s_generator_model)
+
+  def retriever(self, obj_dense: object) -> object:
+    """Return the retriever of the configured [retrieval] mode over a loaded dense index.
+
+    The BM25 index is built from the dense index's chunks in modes "hybrid" and "bm25" only, and
+    the fusion settings apply to mode "hybrid" only.
+    """
+    s_mode = self.obj_config.s_retrieval_mode
+    if s_mode == "dense":
+      return DenseOnlyRetriever(obj_dense)
+    obj_bm25 = Bm25Index()
+    obj_bm25.build(obj_dense.l_chunks)
+    if s_mode == "bm25":
+      return Bm25OnlyRetriever(obj_bm25)
+    return HybridRetriever(
+      obj_bm25, obj_dense, i_k=self.obj_config.i_rrf_k,
+      f_bm25_weight=self.obj_config.f_bm25_weight, f_dense_weight=self.obj_config.f_dense_weight,
+    )
 
   def check_fastembed_model(self, s_model: str) -> None:
     """Raise ValueError when fastembed's list of supported models does not hold the name."""
