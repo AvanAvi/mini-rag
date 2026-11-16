@@ -276,7 +276,7 @@ The default test suite makes no model download and no network call. One test tha
 
 ### What it does
 
-`uv run pytest` runs 368 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
+`uv run pytest` runs 393 tests and deselects 1. `uv run pytest -m slow` runs the deselected one.
 
 ### How
 
@@ -346,7 +346,7 @@ Each merged pull request adds one class or command plus the tests for it.
 
 ### How
 
-Pull requests are squash-merged, and commit messages are short bullet points. When a pull request changes behaviour, it updates this file, `docs/flow.md` and the README status diagram in the same pull request. [CONTRIBUTING.md](../CONTRIBUTING.md) states these rules for outside contributors (D33).
+Pull requests are squash-merged, and commit messages are short bullet points. When a pull request changes behaviour, it updates this file, `docs/flow.md` and the README status diagram in the same pull request. [CONTRIBUTING.md](../CONTRIBUTING.md) states these rules for outside contributors (D33). The README images are checked by [tests/test_readme_assets.py](../tests/test_readme_assets.py) (D34).
 
 ### Why
 
@@ -785,7 +785,7 @@ A contribution starts with an issue, continues with a pull request that carries 
 
 ### How
 
-The issue templates have front matter with `name` and `about` only. There is no pull request template. No continuous-integration workflow is included; contributors run `uv run pytest` locally, and the expected output ends with `368 passed, 1 deselected`. A change to a default value must show a gain of more than 2 questions on hit@5 at both chunk sizes (D22), and a new dependency needs an entry in this file.
+The issue templates have front matter with `name` and `about` only. There is no pull request template. No continuous-integration workflow is included; contributors run `uv run pytest` locally, and the expected output ends with `393 passed, 1 deselected`. A change to a default value must show a gain of more than 2 questions on hit@5 at both chunk sizes (D22), and a new dependency needs an entry in this file.
 
 ### Why
 
@@ -794,3 +794,42 @@ An issue first lets a change be discussed before code is written. A pull request
 ### Trade-off or status
 
 Built. Without continuous integration, nothing checks a pull request automatically; the reviewer runs the tests.
+## D34 README banner and badges
+
+### Decision
+
+The README opens with two hand-written SVG files, `assets/readme/banner.svg` and `assets/readme/badges.svg`, followed by a row of links to the main sections. Every string they show comes from a repository file.
+
+### What it does
+
+`banner.svg` (viewBox `0 0 1280 520`) is a dark terminal window titled mini-rag. It holds a pixel wordmark that spells mini-rag, the tagline "answers questions from a local corpus by combining keyword search with dense embedding search", and the README's example query with its first hit line, `Answer:`, `Not found in the corpus.`, the `found:` line and a block cursor. The bottom line names the pipeline stages in the order of the diagram in `docs/flow.md`: Text files › Chunker › BM25 search + Dense search › RankFuser › Answerer. `badges.svg` (viewBox `0 0 1280 96`) holds eight label and value pills in two rows: python 3.13, license MIT, embeddings fastembed, keyword rank-bm25, vectors numpy, model bge-small-en-v1.5, config TOML, platform Windows.
+
+### How
+
+The banner is one dark image, so it needs no light and dark variants and no theme switching. The wordmark is drawn as paths on a 5 by 7 cell grid with 12-unit cells, so it depends on no font. `tests/readme_asset_checker.py` enforces the limits, and `tests/test_readme_assets.py` runs it on the real files and on one hand-made bad file per rule. The limits are: xmlns, `role="img"`, a title and a desc as the first children, no script, foreignObject, image, a, animate or set element, no `@import`, no CSS animation or transition, no external URL, no XML comment, no metadata, no absolute path, two allowed font stacks, a font-size of at least 18 and at most 40 KB per file. The traceability check collapses whitespace and requires every text node of the banner to occur in `README.md`, `CONTRIBUTING.md`, `docs/*.md`, `mini-rag.toml`, `pyproject.toml`, `.python-version` or `LICENSE`; a string made only of `$`, `>`, `›`, `+` and spaces is exempt. The tagline is four tspans, each a phrase from the README's first sentence, and a test checks that they join to the 93-character tagline. A second test checks the stage order against the edges of the flow diagram, counting the dotted edges from the dense index to both searches. The badge pairs must equal the provenance table in the checker, and each row's source file must hold its substring: `.python-version` holds `3.13`, `LICENSE` holds `MIT License`, `pyproject.toml` holds `fastembed`, `rank-bm25` and `numpy`, `mini-rag.toml` holds `bge-small-en-v1.5`, and `README.md` holds `mini-rag.toml` and `Windows PowerShell 5.1`.
+
+Measured WCAG contrast ratios (text needs 4.5:1, filled graphics 3:1 against the window background `#0d1117`):
+
+| Pair | Ratio |
+|---|---|
+| Title bar text `#8b949e` on `#161b22` | 5.62:1 |
+| Tagline `#c9d1d9` | 12.26:1 |
+| Prompt and pipeline names `#3fb950` | 7.45:1 |
+| Command and `Answer:` `#e6edf3` | 16.02:1 |
+| Hit line, `found:` line and separators `#8b949e` | 6.15:1 |
+| `Not found in the corpus.` `#d29922` | 7.50:1 |
+| Wordmark face `#3fb950` (graphic) | 7.45:1 |
+| Wordmark shadow `#1a7f37` (graphic) | 3.73:1 |
+| Cursor `#e6edf3` (graphic) | 16.02:1 |
+| Badge label `#e6edf3` on `#21262d` | 12.88:1 |
+| Badge value `#ffffff` on `#238636` | 4.63:1 |
+
+Layout guidance came from the beautify-github-readme skill (https://github.com/oil-oil/beautify-github-readme), read from a local clone and not installed.
+
+### Why
+
+SVG keeps the identity sharp at any width and small enough to review as text, while every command, number and explanation stays in Markdown. The section headings stay text, so their anchors keep working. The traceability rule and the provenance table replace an earlier ban on digits in SVG text: the banner now shows real output with numbers, and each string is tied to a file a reader can check. A third-party badge service would be a network dependency and an external URL; CI, coverage, star, download and test-count badges would show numbers that change without the image changing. Raster images, GIFs and animation would add binary or moving content that the checker can't read.
+
+### Trade-off or status
+
+Built. A change to the README's example output block must update the banner in the same pull request. These parts were not tested: rendering on GitHub, rendering in browsers other than the one the maintainer uses, and screen readers. No SVG renderer was available where the files were written.
