@@ -13,10 +13,13 @@ The commands below were run on Windows with Windows PowerShell 5.1. No test has 
 1. Fork the repository on GitHub and clone your fork.
 2. Create a branch for the change, for example with `git switch -c fix-query-note`.
 3. Open a PowerShell window in the project root and dot-source the environment script with `. .\scripts\env.ps1`.
-4. Install the dependencies with `uv sync`.
-5. Run the test suite with `uv run pytest`. The expected output ends with `393 passed, 1 deselected`.
-6. Make the change together with its tests and the documentation updates listed below.
-7. Run `uv run pytest` again before you open the pull request. The run must end with 0 failed tests.
+4. Set the offline flag with `$env:HF_HUB_OFFLINE = "1"` once the model is cached, so that a missing cache setting fails with an error and doesn't download the model into your Temp folder.
+5. Install the dependencies with `uv sync`.
+6. Run the test suite with `uv run pytest`. The expected output ends with `393 passed, 1 deselected`.
+7. Make the change together with its tests and the documentation updates listed below.
+8. Run `uv run pytest` again before you open the pull request. The run must end with 0 failed tests.
+
+Without the `env.ps1` step, a measured run downloaded the model into `Temp\fastembed_cache` and wrote Hugging Face files to `~\.cache\huggingface`.
 
 ## Rules for changes
 
